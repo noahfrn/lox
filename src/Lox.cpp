@@ -11,7 +11,7 @@
 
 bool Lox::RunFile(std::string_view path)
 {
-  std::ifstream file{ path };
+  std::ifstream file{ path.data() };
   if (!file) { throw std::runtime_error(fmt::format("File not found: {}", path)); }
 
   std::stringstream buffer;
@@ -36,21 +36,18 @@ void Lox::RunPrompt()
   }
 }
 
-int Lox::Run(std::string_view source)
+void Lox::Run(std::string_view source)
 {
-  Scanner scanner{ source };
+  auto error_reporter =
+    std::make_shared<ErrorReporter>([this](int line, std::string_view message) { Report(line, "", message); });
+  Scanner scanner{ source, error_reporter };
   auto tokens = scanner.ScanTokens();
 
-  for (const auto& token : tokens) {
-    fmt::println("{}", token);
-  }
+  for (const auto &token : tokens) { std::cout << fmt::format("{}", token) << '\n' << std::flush; }
 }
-
 
 void Lox::Report(int line, std::string_view where, std::string_view message)
 {
-  fmt::println(stderr, "[line {}] Error {}: {}", line, where, message);
+  std::cerr << fmt::format("[line {}] Error{}: {}", line, where, message) << '\n' << std::flush;
   had_error = true;
 }
-
-void Lox::Error(int line, std::string_view message) { Report(line, "", message); }

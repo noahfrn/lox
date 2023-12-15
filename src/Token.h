@@ -4,7 +4,9 @@
 #include <any>
 #include <cstdint>
 #include <fmt/format.h>
+#include <magic_enum/magic_enum.hpp>
 #include <string>
+#include <variant>
 
 enum class TokenType : std::uint8_t {
   LEFT_PAREN,
@@ -52,23 +54,43 @@ enum class TokenType : std::uint8_t {
   EOF_
 };
 
+using LiteralT = std::variant<std::monostate, bool, double, std::string>;
 
-template<ObjectType>
+template<> struct fmt::formatter<LiteralT>
+{
+  template<typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+  template<typename FormatContext> auto format(const LiteralT &literal, FormatContext &ctx)
+  {
+    return std::visit(
+      [&ctx](auto &&arg) {
+        using T = std::decay_t<decltype(arg)>;
+        if constexpr (std::is_same_v<T, std::monostate>) {
+          return fmt::format_to(ctx.out(), "nil");
+        } else {
+          return fmt::format_to(ctx.out(), "{}", arg);
+        }
+      },
+      literal);
+  }
+};
+
 class Token
 {
 public:
-  Token(TokenType type, std::string lexeme, std::any literal, int line)
+  Token(TokenType type, std::string lexeme, LiteralT literal, int line)
     : type_{ type }, lexeme_{ std::move(lexeme) }, literal_{ std::move(literal) }, line_{ line }
   {}
-  TokenType Type() const { return type_; }
-  const std::string &Lexeme() const { return lexeme_; }
-  const any &Literal() const { return literal_; }
-  int Line() const { return line_; }
+
+  [[nodiscard]] TokenType Type() const { return type_; }
+  [[nodiscard]] const std::string &Lexeme() const { return lexeme_; }
+  [[nodiscard]] const LiteralT &Literal() const { return literal_; }
+  [[nodiscard]] int Line() const { return line_; }
 
 private:
   TokenType type_;
   std::string lexeme_;
-  std::unique_ptr<ObjectType> literal_;
+  LiteralT literal_;
   int line_;
 };
 
@@ -78,7 +100,7 @@ template<> struct fmt::formatter<Token>
 
   template<typename FormatContext> auto format(const Token &token, FormatContext &ctx)
   {
-    return fmt::format_to(ctx.out(), "{} {} {}", token.Type(), token.Lexeme(), token.Literal());
+    return fmt::format_to(ctx.out(), "{} {} {}", magic_enum::enum_name(token.Type()), token.Lexeme(), token.Literal());
   }
 };
 
