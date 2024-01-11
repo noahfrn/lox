@@ -1,7 +1,10 @@
 #include "Scanner.h"
-#include "ErrorReporter.h"
 #include "Token.h"
-#include <fmt/format.h>
+#include <fmt/core.h>
+#include <string>
+#include <unordered_map>
+#include <variant>
+#include <vector>
 
 
 bool Scanner::IsAtEnd() const { return current_ >= source_.size(); }
