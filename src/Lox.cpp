@@ -6,8 +6,8 @@
 #include <string>
 #include <string_view>
 
-#include "Lox.h"
 #include "ErrorReporter.h"
+#include "Lox.h"
 #include "Scanner.h"
 #include "fmt/core.h"
 

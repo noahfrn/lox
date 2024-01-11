@@ -71,6 +71,20 @@ void Scanner::Number()
   AddToken(TokenType::NUMBER, std::stod(source_.substr(start_, current_ - start_)));
 }
 
+void Scanner::BlockComment()
+{
+  while (Peek() != '*' && PeekNext() != '/' && !IsAtEnd()) {
+    if (Peek() == '\n') { ++line_; }
+    Advance();
+  }
+  if (IsAtEnd()) {
+    error_reporter_->Report(line_, "Unterminated comment.");
+    return;
+  }
+  Advance();
+  Advance();
+}
+
 void Scanner::Identifier()
 {
   while (IsAlphaNumeric(Peek())) { Advance(); }
@@ -109,7 +123,7 @@ void Scanner::AddToken(TokenType type) { AddToken(type, std::monostate{}); }
 
 void Scanner::AddToken(TokenType type, const LiteralT &literal)
 {
-  std::string text = source_.substr(start_, current_ - start_);
+  const std::string text = source_.substr(start_, current_ - start_);
   tokens_.emplace_back(type, text, literal, line_);
 }
 
@@ -164,16 +178,7 @@ void Scanner::ScanToken()
       // A comment goes until the end of the line.
       while (Peek() != '\n' && !IsAtEnd()) { Advance(); }
     } else if (Match('*')) {
-      while (Peek() != '*' && PeekNext() != '/' && !IsAtEnd()) {
-        if (Peek() == '\n') { ++line_; }
-        Advance();
-      }
-      if (IsAtEnd()) {
-        error_reporter_->Report(line_, "Unterminated comment.");
-        return;
-      }
-      Advance();
-      Advance();
+      BlockComment();
     } else {
       AddToken(TokenType::SLASH);
     }

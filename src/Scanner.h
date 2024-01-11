@@ -40,6 +40,7 @@ private:
   void String();
   void Number();
   void Identifier();
+  void BlockComment();
 
   [[nodiscard]] static bool IsDigit(char c);
   [[nodiscard]] static bool IsAlpha(char c);
