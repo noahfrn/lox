@@ -11,9 +11,8 @@ public:
   [[noreturn]] void RunPrompt();
 
 private:
-  ErrorReporter error_reporter_{ [this](int line, std::string_view message) { Report(line, "", message); } };
+  bool had_error_{ false };
 
-  bool had_error{ false };
   void Report(int line, std::string_view where, std::string_view message);
   void Run(std::string_view source);
 };

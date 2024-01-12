@@ -11,6 +11,7 @@
 #include "AstPrinter.h"
 #include "ErrorReporter.h"
 #include "Lox.h"
+#include "Parser.h"
 #include "Scanner.h"
 #include "Token.h"
 #include "fmt/core.h"
@@ -26,7 +27,7 @@ bool Lox::RunFile(std::string_view path)
 
   Run(buffer.str());
 
-  return had_error;
+  return had_error_;
 }
 
 
@@ -37,29 +38,26 @@ void Lox::RunPrompt()
     std::cout << "> " << std::flush;
     getline(std::cin, line);
     Run(line);
-    had_error = false;
+    had_error_ = false;
   }
 }
 
 void Lox::Run(std::string_view source)
 {
-  auto error_reporter =
-    std::make_shared<ErrorReporter>([this](int line, std::string_view message) { Report(line, "", message); });
+  auto error_reporter = std::make_shared<ErrorReporter>(
+    [this](int line, std::string_view where, std::string_view message) { Report(line, where, message); });
   Scanner scanner{ source, error_reporter };
   auto tokens = scanner.ScanTokens();
+  Parser parser{ tokens, error_reporter };
+  auto expression = parser.Parse();
 
-  for (const auto &token : tokens) { std::cout << fmt::format("{}", token) << '\n' << std::flush; }
+  if (had_error_ || !expression) { return; }
 
-  const auto expr =
-    MakeExpr<Binary>(MakeExpr<Unary>(Token(TokenType::MINUS, "-", std::monostate{}, 1), MakeExpr<Literal>(123)),
-      Token(TokenType::STAR, "*", std::monostate{}, 1),
-      MakeExpr<Grouping>(MakeExpr<Literal>(45.67)));
-
-  std::cout << std::visit(AstPrinterVisitor{}, *expr) << std::endl;
+  std::cout << std::visit(AstPrinterVisitor{}, *expression) << std::endl;
 }
 
 void Lox::Report(int line, std::string_view where, std::string_view message)
 {
   std::cerr << fmt::format("[line {}] Error{}: {}", line, where, message) << '\n' << std::flush;
-  had_error = true;
+  had_error_ = true;
 }

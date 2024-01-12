@@ -1,6 +1,9 @@
 #include "Parser.h"
 #include "Ast.h"
 #include "Token.h"
+#include <algorithm>
+#include <exception>
+#include <fmt/core.h>
 
 Token Parser::Previous() const { return tokens_.at(current_ - 1); }
 
@@ -32,75 +35,110 @@ bool Parser::Match(TokenType type)
 Token Parser::Consume(TokenType type, std::string_view message)
 {
   if (Check(type)) { return Advance(); }
-  throw std::runtime_error(fmt::format("[line {}] Error: {}", Peek().Line(), message));
+  throw Error(Peek(), message);
 }
 
-ExprPtr Parser::Expression() { return Equality(); }
-
-ExprPtr Parser::Equality()
+std::exception Parser::Error(Token token, std::string_view message)
 {
-  auto expr = Comparison();
+  if (token.Type() == TokenType::EOF_) {
+    error_reporter_->Report(token.Line(), " at end", message);
+  } else {
+    error_reporter_->Report(token.Line(), fmt::format(" at '{}'", token.Lexeme()), message);
+  }
+  return std::runtime_error("Parse error.");
+}
+
+void Parser::Synchronize()
+{
+  Advance();
+
+  while (!IsAtEnd()) {
+    if (Previous().Type() == TokenType::SEMICOLON) { return; }
+
+    switch (Peek().Type()) {
+    case TokenType::CLASS:
+    case TokenType::FUN:
+    case TokenType::VAR:
+    case TokenType::FOR:
+    case TokenType::IF:
+    case TokenType::WHILE:
+    case TokenType::PRINT:
+    case TokenType::RETURN:
+      return;
+    default:
+      break;
+    }
+
+    Advance();
+  }
+}
+
+ExprPtr Parser::ParseExpression() { return ParseEquality(); }
+
+ExprPtr Parser::ParseEquality()
+{
+  auto expr = ParseComparison();
 
   while (Match(TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL)) {
     auto op = Previous();
-    auto right = Comparison();
+    auto right = ParseComparison();
     expr = MakeExpr<Binary>(expr, op, right);
   }
 
   return expr;
 }
 
-ExprPtr Parser::Comparison()
+ExprPtr Parser::ParseComparison()
 {
-  auto expr = Term();
+  auto expr = ParseTerm();
 
   while (Match(TokenType::GREATER, TokenType::GREATER_EQUAL, TokenType::LESS, TokenType::LESS_EQUAL)) {
     auto op = Previous();
-    auto right = Term();
+    auto right = ParseTerm();
     expr = MakeExpr<Binary>(expr, op, right);
   }
 
   return expr;
 }
 
-ExprPtr Parser::Term()
+ExprPtr Parser::ParseTerm()
 {
-  auto expr = Factor();
+  auto expr = ParseFactor();
 
   while (Match(TokenType::MINUS, TokenType::PLUS)) {
     auto op = Previous();
-    auto right = Factor();
+    auto right = ParseFactor();
     expr = MakeExpr<Binary>(expr, op, right);
   }
 
   return expr;
 }
 
-ExprPtr Parser::Factor()
+ExprPtr Parser::ParseFactor()
 {
-  auto expr = Unary();
+  auto expr = ParseUnary();
 
   while (Match(TokenType::SLASH, TokenType::STAR)) {
     auto op = Previous();
-    auto right = Unary();
+    auto right = ParseUnary();
     expr = MakeExpr<Binary>(expr, op, right);
   }
 
   return expr;
 }
 
-ExprPtr Parser::Unary()
+ExprPtr Parser::ParseUnary()
 {
   if (Match(TokenType::BANG, TokenType::MINUS)) {
     auto op = Previous();
-    auto right = Unary();
+    auto right = ParseUnary();
     return MakeExpr<Unary>(op, right);
   }
 
-  return Primary();
+  return ParsePrimary();
 }
 
-ExprPtr Parser::Primary()
+ExprPtr Parser::ParsePrimary()
 {
   if (Match(TokenType::FALSE)) { return MakeExpr<Literal>(false); }
   if (Match(TokenType::TRUE)) { return MakeExpr<Literal>(true); }
@@ -109,10 +147,19 @@ ExprPtr Parser::Primary()
   if (Match(TokenType::NUMBER, TokenType::STRING)) { return MakeExpr<Literal>(Previous().Literal()); }
 
   if (Match(TokenType::LEFT_PAREN)) {
-    auto expr = Expression();
+    auto expr = ParseExpression();
     Consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
     return MakeExpr<Grouping>(expr);
   }
 
-  throw std::runtime_error("Expected expression.");
+  throw Error(Peek(), "Expected expression.");
+}
+
+ExprPtr Parser::Parse()
+{
+  try {
+    return ParseExpression();
+  } catch (std::exception &e) {
+    return nullptr;
+  }
 }
