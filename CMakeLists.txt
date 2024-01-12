@@ -25,5 +25,7 @@ add_executable(lox src/main.cpp
         src/AstPrinter.h
         src/Parser.cpp
         src/Parser.h
+        src/AstInterpreter.cpp
+        src/AstInterpreter.h
 )
 
