@@ -56,13 +56,6 @@ def generate_type(field_type: FieldType) -> str:
         raise ValueError(f"Unknown field type: {field_type}")
 
 
-def generate_init(field_type: FieldType, field_name: str) -> str:
-    if field_type == FieldType.EXPRESSION:
-        return f"{field_name} ? std::move({field_name}) : nullptr"
-    else:
-        return field_name
-
-
 def generate_header() -> str:
     header = StringIO()
     header.write("#ifndef LOX_AST_H\n")
@@ -81,66 +74,47 @@ def generate_includes() -> str:
     return includes.getvalue()
 
 
-def generate_base_class() -> str:
-    base_class = StringIO()
-    base_class.write("class Expr {\n")
-    base_class.write("public:\n")
-    base_class.write("    virtual ~Expr() = default;\n")
-    base_class.write("};\n")
-    base_class.write("\n")
-    return base_class.getvalue()
-
-
-def generate_exprptr_type() -> str:
-    expr_type = StringIO()
-    expr_type.write("using ExprPtr = std::unique_ptr<Expr>;\n")
-    expr_type.write("\n")
-    return expr_type.getvalue()
-
-
-def generate_struct(expr_type: ExpressionType, fields: list[tuple[FieldType, str]]) -> str:
-    struct = StringIO()
-    struct.write(f"struct {expr_type.value} : Expr {{\n")
-
-    # Constructor
-    constructor_args = ', '.join(
-        f"{generate_type(field_type)} {field_name}" for field_type, field_name in fields)
-    constructor_initializers = ', '.join(
-        f"{field_name}({generate_init(field_type, field_name)})" for field_type, field_name in fields)
-    struct.write(f"    {expr_type.value}({constructor_args}) : {constructor_initializers} {{}}\n")
-
-    # Fields
-    field_declarations = '\n'.join(
-        f"    {generate_type(field_type)} {field_name};" for field_type, field_name in fields)
-    struct.write(f"{field_declarations}\n")
-
-    struct.write("};\n\n")
-    return struct.getvalue()
-
-
 def generate_footer() -> str:
     return "#endif // LOX_AST_H\n"
 
 
-def generate_body() -> str:
-    body = StringIO()
+def generate_declarations() -> str:
+    declarations = StringIO()
+    for expr_type in AST.keys():
+        declarations.write(f"struct {expr_type.value};\n")
+    declarations.write("\n")
+    return declarations.getvalue()
 
+
+def generate_expr_types() -> str:
+    expr_types = StringIO()
+    names = ', '.join([expr_type.value for expr_type in AST.keys()])
+    expr_types.write(f"using Expr = std::variant<{names}>;\n")
+    expr_types.write("using ExprPtr = std::shared_ptr<Expr>;\n")
+    expr_types.write("\n")
+    return expr_types.getvalue()
+
+
+def generate_structs() -> str:
+    structs = StringIO()
     for expr_type, fields in AST.items():
-        body.write(generate_struct(expr_type, fields))
+        structs.write(f"struct {expr_type.value} {{\n")
+        for field_type, field_name in fields:
+            structs.write(f"    {generate_type(field_type)} {field_name};\n")
+        structs.write("};\n")
+        structs.write("\n")
+    return structs.getvalue()
 
-    return body.getvalue()
 
-
-def generate_expr_variant() -> str:
-    variant = StringIO()
-    variant.write("using ExprT = std::variant<\n")
-    keys = list(AST.keys())
-    for expr_type in keys[:-1]:
-        variant.write(f"    {expr_type.value},\n")
-    variant.write(f"    {keys[-1].value}\n")
-    variant.write(">;\n")
-    variant.write("\n")
-    return variant.getvalue()
+def generate_helpers() -> str:
+    helpers = StringIO()
+    helpers.write(f"template <typename ExprType, typename... Args>\n")
+    helpers.write(f"auto MakeExpr(Args&&... args) -> ExprPtr\n")
+    helpers.write(f"{{\n")
+    helpers.write(f"    return std::make_shared<Expr>(ExprType{{std::forward<Args>(args)...}});\n")
+    helpers.write(f"}}\n")
+    helpers.write("\n")
+    return helpers.getvalue()
 
 
 def generate_ast() -> str:
@@ -148,10 +122,10 @@ def generate_ast() -> str:
 
     ast.write(generate_header())
     ast.write(generate_includes())
-    ast.write(generate_base_class())
-    ast.write(generate_exprptr_type())
-    ast.write(generate_body())
-    ast.write(generate_expr_variant())
+    ast.write(generate_declarations())
+    ast.write(generate_expr_types())
+    ast.write(generate_structs())
+    ast.write(generate_helpers())
     ast.write(generate_footer())
 
     return ast.getvalue()

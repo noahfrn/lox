@@ -31,7 +31,6 @@ bool Lox::RunFile(std::string_view path)
 
 void Lox::RunPrompt()
 {
-
   std::string line{};
   while (true) {
     std::cout << "> " << std::flush;
@@ -50,12 +49,12 @@ void Lox::Run(std::string_view source)
 
   for (const auto &token : tokens) { std::cout << fmt::format("{}", token) << '\n' << std::flush; }
 
-  ExprT expr = Binary{ std::make_unique<Unary>(
-                         Token{ TokenType::MINUS, "-", std::monostate{}, 1 }, std::make_unique<Literal>(123.0)),
-    Token{ TokenType::STAR, "*", std::monostate{}, 1 },
-    std::make_unique<Grouping>(std::make_unique<Literal>(45.67)) };
-  AstPrinterVisitor printer{};
-  std::cout << printer(expr) << std::flush;
+  const auto expr =
+    MakeExpr<Binary>(MakeExpr<Unary>(Token(TokenType::MINUS, "-", std::monostate{}, 1), MakeExpr<Literal>(123)),
+      Token(TokenType::STAR, "*", std::monostate{}, 1),
+      MakeExpr<Grouping>(MakeExpr<Literal>(45.67)));
+
+  std::cout << std::visit(AstPrinterVisitor{}, *expr) << std::endl;
 }
 
 void Lox::Report(int line, std::string_view where, std::string_view message)

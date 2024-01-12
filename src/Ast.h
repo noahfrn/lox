@@ -6,41 +6,37 @@
 #include "common.h"
 #include "Token.h"
 
-class Expr {
-public:
-    virtual ~Expr() = default;
-};
+struct Binary;
+struct Grouping;
+struct Literal;
+struct Unary;
 
-using ExprPtr = std::unique_ptr<Expr>;
+using Expr = std::variant<Binary, Grouping, Literal, Unary>;
+using ExprPtr = std::shared_ptr<Expr>;
 
-struct Binary : Expr {
-    Binary(ExprPtr left, Token op, ExprPtr right) : left(left ? std::move(left) : nullptr), op(op), right(right ? std::move(right) : nullptr) {}
+struct Binary {
     ExprPtr left;
     Token op;
     ExprPtr right;
 };
 
-struct Grouping : Expr {
-    Grouping(ExprPtr expression) : expression(expression ? std::move(expression) : nullptr) {}
+struct Grouping {
     ExprPtr expression;
 };
 
-struct Literal : Expr {
-    Literal(LiteralT value) : value(value) {}
+struct Literal {
     LiteralT value;
 };
 
-struct Unary : Expr {
-    Unary(Token op, ExprPtr right) : op(op), right(right ? std::move(right) : nullptr) {}
+struct Unary {
     Token op;
     ExprPtr right;
 };
 
-using ExprT = std::variant<
-    Binary,
-    Grouping,
-    Literal,
-    Unary
->;
+template <typename ExprType, typename... Args>
+auto MakeExpr(Args&&... args) -> ExprPtr
+{
+    return std::make_shared<Expr>(ExprType{std::forward<Args>(args)...});
+}
 
 #endif // LOX_AST_H
