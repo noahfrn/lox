@@ -3,6 +3,7 @@
 
 #include "ErrorReporter.h"
 #include "Token.h"
+#include "common.h"
 #include <string>
 #include <string_view>
 #include <utility>
@@ -11,7 +12,7 @@
 class Scanner
 {
 public:
-  explicit Scanner(std::string_view source, std::shared_ptr<ErrorReporter> reporter)
+  explicit Scanner(std::string_view source, ErrorReporterPtr reporter)
     : source_{ source }, error_reporter_{ std::move(reporter) }
   {}
 
@@ -19,7 +20,7 @@ public:
 
 private:
   std::string source_;
-  std::shared_ptr<ErrorReporter> error_reporter_;
+  ErrorReporterPtr error_reporter_;
   std::vector<Token> tokens_{};
   int start_{ 0 };
   int current_{ 0 };

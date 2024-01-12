@@ -46,7 +46,7 @@ void Scanner::String()
   }
 
   if (IsAtEnd()) {
-    error_reporter_->Report(line_, "Unterminated string.");
+    error_reporter_->Report(line_, "", "Unterminated string.");
     return;
   }
 
@@ -78,7 +78,7 @@ void Scanner::BlockComment()
     Advance();
   }
   if (IsAtEnd()) {
-    error_reporter_->Report(line_, "Unterminated comment.");
+    error_reporter_->Report(line_, "", "Unterminated comment.");
     return;
   }
   Advance();
@@ -199,7 +199,7 @@ void Scanner::ScanToken()
     } else if (IsAlpha(c)) {
       Identifier();
     } else {
-      error_reporter_->Report(line_, fmt::format("Unexpected character: {}", c));
+      error_reporter_->Report(line_, "", fmt::format("Unexpected character: {}", c));
     }
     break;
   }
