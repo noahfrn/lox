@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <functional>
+#include <memory>
 #include <iostream>
 #include <string_view>
 #include <utility>
@@ -18,10 +19,11 @@ public:
 
 private:
   ErrorFn report_error_{ [](int, std::string_view) {
-    auto msg = "Error: Error reporter not set\n";
+    const auto* msg = "Error: Error reporter not set\n";
     std::cerr << msg << std::endl;
   } };
 };
 
+using ErrorReporterPtr = std::shared_ptr<ErrorReporter>;
 
 #endif// LOX_ERRORREPORTER_H
