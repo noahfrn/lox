@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <variant>
 
 #include "Ast.h"
 #include "AstPrinter.h"
