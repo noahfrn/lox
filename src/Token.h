@@ -1,6 +1,7 @@
 #ifndef LOX_TOKEN_H
 #define LOX_TOKEN_H
 
+#include "common.h"
 #include <any>
 #include <cstdint>
 #include <fmt/format.h>
@@ -53,8 +54,6 @@ enum class TokenType : std::uint8_t {
 
   EOF_
 };
-
-using LiteralT = std::variant<std::monostate, bool, double, std::string>;
 
 template<> struct fmt::formatter<LiteralT>
 {

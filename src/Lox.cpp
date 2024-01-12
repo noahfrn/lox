@@ -6,9 +6,12 @@
 #include <string>
 #include <string_view>
 
+#include "Ast.h"
+#include "AstPrinter.h"
 #include "ErrorReporter.h"
 #include "Lox.h"
 #include "Scanner.h"
+#include "Token.h"
 #include "fmt/core.h"
 
 bool Lox::RunFile(std::string_view path)
@@ -46,6 +49,13 @@ void Lox::Run(std::string_view source)
   auto tokens = scanner.ScanTokens();
 
   for (const auto &token : tokens) { std::cout << fmt::format("{}", token) << '\n' << std::flush; }
+
+  ExprT expr = Binary{ std::make_unique<Unary>(
+                         Token{ TokenType::MINUS, "-", std::monostate{}, 1 }, std::make_unique<Literal>(123.0)),
+    Token{ TokenType::STAR, "*", std::monostate{}, 1 },
+    std::make_unique<Grouping>(std::make_unique<Literal>(45.67)) };
+  AstPrinterVisitor printer{};
+  std::cout << printer(expr) << std::flush;
 }
 
 void Lox::Report(int line, std::string_view where, std::string_view message)
