@@ -1,9 +1,10 @@
 #include "Parser.h"
 #include "Ast.h"
 #include "Token.h"
-#include <algorithm>
 #include <exception>
 #include <fmt/core.h>
+#include <stdexcept>
+#include <string_view>
 
 Token Parser::Previous() const { return tokens_.at(current_ - 1); }
 
@@ -142,7 +143,7 @@ ExprPtr Parser::ParsePrimary()
 {
   if (Match(TokenType::FALSE)) { return MakeExpr<Literal>(false); }
   if (Match(TokenType::TRUE)) { return MakeExpr<Literal>(true); }
-  if (Match(TokenType::NIL)) { return MakeExpr<Literal>(nullptr); }
+  if (Match(TokenType::NIL)) { return MakeExpr<Literal>(Nil{}); }
 
   if (Match(TokenType::NUMBER, TokenType::STRING)) { return MakeExpr<Literal>(Previous().Literal()); }
 
@@ -152,7 +153,7 @@ ExprPtr Parser::ParsePrimary()
     return MakeExpr<Grouping>(expr);
   }
 
-  throw Error(Peek(), "Expected expression.");
+  throw Error(Peek(), "Expect expression.");
 }
 
 ExprPtr Parser::Parse()

@@ -2,12 +2,11 @@
 #define LOX_TOKEN_H
 
 #include "common.h"
-#include <any>
 #include <cstdint>
 #include <fmt/format.h>
 #include <magic_enum/magic_enum.hpp>
 #include <string>
-#include <variant>
+#include <utility>
 
 enum class TokenType : std::uint8_t {
   LEFT_PAREN,
@@ -55,6 +54,16 @@ enum class TokenType : std::uint8_t {
   EOF_
 };
 
+template<> struct fmt::formatter<TokenType>
+{
+  template<typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+  template<typename FormatContext> auto format(const TokenType &tokenType, FormatContext &ctx)
+  {
+    return fmt::format_to(ctx.out(), "{}", magic_enum::enum_name(tokenType));
+  }
+};
+
 class Token
 {
 public:
@@ -80,7 +89,7 @@ template<> struct fmt::formatter<Token>
 
   template<typename FormatContext> auto format(const Token &token, FormatContext &ctx)
   {
-    return fmt::format_to(ctx.out(), "{} {} {}", magic_enum::enum_name(token.Type()), token.Lexeme(), token.Literal());
+    return fmt::format_to(ctx.out(), "{} {} {}", token.Type(), token.Lexeme(), token.Literal());
   }
 };
 

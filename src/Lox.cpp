@@ -44,16 +44,14 @@ void Lox::RunPrompt()
 
 void Lox::Run(std::string_view source)
 {
-  auto error_reporter = std::make_shared<ErrorReporter>(
-    [this](int line, std::string_view where, std::string_view message) { Report(line, where, message); });
-  Scanner scanner{ source, error_reporter };
+  Scanner scanner{ source, error_reporter_ };
   auto tokens = scanner.ScanTokens();
-  Parser parser{ tokens, error_reporter };
+  Parser parser{ tokens, error_reporter_ };
   auto expression = parser.Parse();
 
-  if (had_error_ || !expression) { return; }
+  if (HadError() || !expression) { return; }
 
-  std::cout << std::visit(AstPrinterVisitor{}, *expression) << std::endl;
+  interpreter_.Interpret(expression);
 }
 
 void Lox::Report(int line, std::string_view where, std::string_view message)
@@ -61,3 +59,11 @@ void Lox::Report(int line, std::string_view where, std::string_view message)
   std::cerr << fmt::format("[line {}] Error{}: {}", line, where, message) << '\n' << std::flush;
   had_error_ = true;
 }
+
+void Lox::ReportRuntime(int line, std::string_view message)
+{
+  std::cerr << fmt::format("[line {}] Error: {}", line, message) << '\n' << std::flush;
+  had_runtime_error_ = true;
+}
+
+bool Lox::HadError() const { return had_error_ || had_runtime_error_; }
