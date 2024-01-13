@@ -28,4 +28,3 @@ add_executable(lox src/main.cpp
         src/AstInterpreter.cpp
         src/AstInterpreter.h
 )
-

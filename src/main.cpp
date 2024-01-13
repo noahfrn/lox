@@ -10,15 +10,11 @@
 int main(int argc, char **argv)
 {
   try {
-    bool debug = false;
     std::string script{};
 
     // clang-format off
     auto cli
       = lyra::cli()
-      | lyra::opt( debug )
-          ["-d"]["--debug"]
-          ("Enable debug logging.")
       | lyra::arg( script, "script" )
           ("Script to run.");
     // clang-format on
