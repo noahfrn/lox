@@ -1,5 +1,6 @@
 #include "AstInterpreter.h"
 #include "Ast.h"
+#include "Common.h"
 #include "Token.h"
 
 #include <fmt/core.h>
