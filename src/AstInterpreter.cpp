@@ -1,6 +1,6 @@
 #include "AstInterpreter.h"
 #include "Ast.h"
-#include "Common.h"
+#include "Errors.h"
 #include "Token.h"
 
 #include <fmt/core.h>
@@ -41,11 +41,13 @@ void AstInterpreter::CheckNumberOperands(const Token &op, const ObjectT &left, c
   throw RuntimeError(op, fmt::format("Operands must be numbers: {} {}", left, right));
 }
 
-auto AstInterpreter::Evaluate(const ExprPtr &expr) -> ObjectT { return std::visit(*this, *expr); }
+auto AstInterpreter::Evaluate(const Expr &expr) -> ObjectT { return std::visit(*this, expr); }
 
-auto AstInterpreter::operator()(const Unary &unary) -> ObjectT
+auto AstInterpreter::Execute(const Stmt &stmt) -> void { std::visit(*this, stmt); }
+
+auto AstInterpreter::operator()(const expr::Unary &unary) -> ObjectT
 {
-  auto right = Evaluate(unary.right);
+  auto right = Evaluate(*unary.right);
   switch (unary.op.Type()) {
   case TokenType::MINUS:
     CheckNumberOperand(unary.op, right);
@@ -57,10 +59,10 @@ auto AstInterpreter::operator()(const Unary &unary) -> ObjectT
   }
 }
 
-auto AstInterpreter::operator()(const Binary &binary) -> ObjectT
+auto AstInterpreter::operator()(const expr::Binary &binary) -> ObjectT
 {
-  auto left = Evaluate(binary.left);
-  auto right = Evaluate(binary.right);
+  auto left = Evaluate(*binary.left);
+  auto right = Evaluate(*binary.right);
 
   switch (binary.op.Type()) {
   case TokenType::MINUS:
@@ -71,7 +73,7 @@ auto AstInterpreter::operator()(const Binary &binary) -> ObjectT
     return std::get<double>(left) / std::get<double>(right);
   case TokenType::STAR:
     CheckNumberOperands(binary.op, left, right);
-    return std::get<double>(left) / std::get<double>(right);
+    return std::get<double>(left) * std::get<double>(right);
   case TokenType::PLUS:
     if (std::holds_alternative<double>(left) && std::holds_alternative<double>(right)) {
       return std::get<double>(left) + std::get<double>(right);
@@ -100,16 +102,44 @@ auto AstInterpreter::operator()(const Binary &binary) -> ObjectT
   }
 }
 
-auto AstInterpreter::operator()(const Literal &literal) -> ObjectT { return literal.value; }
+auto AstInterpreter::operator()(const expr::Literal &literal) -> ObjectT { return literal.value; }
 
-auto AstInterpreter::operator()(const Grouping &grouping) -> ObjectT { return Evaluate(grouping.expression); }
+auto AstInterpreter::operator()(const expr::Grouping &grouping) -> ObjectT { return Evaluate(*grouping.expression); }
 
-void AstInterpreter::Interpret(const ExprPtr &expr)
+ObjectT AstInterpreter::operator()(const expr::Variable &variable) { return environment_.Get(variable.name); }
+
+auto AstInterpreter::operator()(const stmt::Print &print) -> ObjectT
+{
+  auto value = Evaluate(*print.expression);
+  fmt::print("{}\n", value);
+  return Nil{};
+}
+
+auto AstInterpreter::operator()(const stmt::Expression &expression) -> ObjectT
+{
+  Evaluate(*expression.expression);
+  return Nil{};
+}
+
+auto AstInterpreter::operator()(const stmt::Var &var) -> ObjectT
+{
+  if (var.initializer) {
+    auto value = Evaluate(*var.initializer);
+    environment_.Define(var.name.Lexeme(), value);
+  } else {
+    environment_.Define(var.name.Lexeme(), Nil{});
+  }
+
+  return Nil{};
+}
+
+auto AstInterpreter::operator()(const stmt::Empty &empty) -> ObjectT { return Nil{}; }
+
+void AstInterpreter::Interpret(const std::vector<Stmt> &stmts)
 {
   try {
-    auto value = Evaluate(expr);
-    fmt::print("{}\n", value);
-  } catch (const RuntimeError &e) {
-    error_reporter_->ReportRuntime(e.GetToken().Line(), e.what());
+    for (const auto &stmt : stmts) { Execute(stmt); }
+  } catch (const RuntimeError &error) {
+    error_reporter_->ReportRuntime(error.GetToken().Line(), error.what());
   }
 }

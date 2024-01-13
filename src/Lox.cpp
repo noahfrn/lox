@@ -42,11 +42,11 @@ void Lox::Run(std::string_view source)
   Scanner scanner{ source, error_reporter_ };
   auto tokens = scanner.ScanTokens();
   Parser parser{ tokens, error_reporter_ };
-  auto expression = parser.Parse();
+  auto statements = parser.Parse();
 
-  if (HadError() || !expression) { return; }
+  if (HadError() || statements.empty()) { return; }
 
-  interpreter_.Interpret(expression);
+  interpreter_.Interpret(statements);
 }
 
 void Lox::Report(int line, std::string_view where, std::string_view message)

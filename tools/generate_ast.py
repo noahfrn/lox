@@ -10,11 +10,14 @@ class ExpressionType(Enum):
     GROUPING = "Grouping"
     LITERAL = "Literal"
     UNARY = "Unary"
+    VARIABLE = "Variable"
 
 
 class StatementType(Enum):
     EXPRESSION = "Expression"
     PRINT = "Print"
+    VAR = "Var"
+    EMPTY = "Empty"
 
 
 class FieldType(Enum):
@@ -38,10 +41,13 @@ EXPR_AST: Ast = {
     ],
     ExpressionType.UNARY: [(FieldType.TOKEN, "op"), (FieldType.EXPRESSION, "right"),
                            ],
+    ExpressionType.VARIABLE: [(FieldType.TOKEN, "name")],
 }
 STMT_AST: Ast = {
     StatementType.EXPRESSION: [(FieldType.EXPRESSION, "expression")],
     StatementType.PRINT: [(FieldType.EXPRESSION, "expression")],
+    StatementType.VAR: [(FieldType.TOKEN, "name"), (FieldType.EXPRESSION, "initializer")],
+    StatementType.EMPTY: [],
 }
 
 
@@ -86,31 +92,34 @@ def generate_footer() -> str:
     return "#endif // LOX_AST_H\n"
 
 
-def generate_declarations(ast: Ast) -> str:
+def generate_declarations(ast: Ast, name: str) -> str:
     declarations = StringIO()
+    declarations.write(f"namespace {name.lower()} {{\n")
     for key in ast.keys():
         declarations.write(f"struct {key.value};\n")
-    declarations.write("\n")
+    declarations.write(f"}} // namespace {name.lower()}\n")
     return declarations.getvalue()
 
 
 def generate_types(ast: Ast, name: str) -> str:
     expr_types = StringIO()
-    names = ', '.join([str(key.value) for key in ast.keys()])
+    names = ', '.join([f"{name.lower()}::{str(key.value)}" for key in ast.keys()])
     expr_types.write(f"using {name} = std::variant<{names}>;\n")
     expr_types.write(f"using {name}Ptr = std::shared_ptr<{name}>;\n")
     expr_types.write("\n")
     return expr_types.getvalue()
 
 
-def generate_structs(ast: Ast) -> str:
+def generate_structs(ast: Ast, name: str) -> str:
     structs = StringIO()
+    structs.write(f"namespace {name.lower()} {{\n")
     for key, fields in ast.items():
         structs.write(f"struct {key.value} {{\n")
         for field_type, field_name in fields:
             structs.write(f"    {generate_type(field_type)} {field_name};\n")
         structs.write("};\n")
         structs.write("\n")
+    structs.write(f"}} // namespace {name.lower()}\n")
     return structs.getvalue()
 
 
@@ -127,9 +136,9 @@ def generate_helpers(name: str) -> str:
 
 def generate(ast: Ast, name: str) -> str:
     buffer = StringIO()
-    buffer.write(generate_declarations(ast))
+    buffer.write(generate_declarations(ast, name))
     buffer.write(generate_types(ast, name))
-    buffer.write(generate_structs(ast))
+    buffer.write(generate_structs(ast, name))
     buffer.write(generate_helpers(name))
     return buffer.getvalue()
 

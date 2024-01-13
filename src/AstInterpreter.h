@@ -3,35 +3,35 @@
 
 #include "Ast.h"
 #include "Common.h"
+#include "Environment.h"
 #include "ErrorReporter.h"
 #include "Token.h"
+
 #include <stdexcept>
-
-class RuntimeError : public std::runtime_error
-{
-public:
-  RuntimeError(Token token, std::string_view message) : std::runtime_error{ message.data() }, token_{ std::move(token) }
-  {}
-
-  [[nodiscard]] auto GetToken() const -> const class Token & { return token_; }
-
-private:
-  class Token token_;
-};
+#include <string_view>
+#include <utility>
+#include <vector>
 
 class AstInterpreter
 {
 public:
   AstInterpreter(ErrorReporterPtr error_reporter) : error_reporter_{ std::move(error_reporter) } {}
-  void Interpret(const ExprPtr &expr);
-  auto operator()(const Binary &binary) -> ObjectT;
-  auto operator()(const Grouping &grouping) -> ObjectT;
-  auto operator()(const Unary &unary) -> ObjectT;
-  auto operator()(const Literal &literal) -> ObjectT;
+  void Interpret(const std::vector<Stmt> &stmts);
+  auto operator()(const expr::Binary &binary) -> ObjectT;
+  auto operator()(const expr::Grouping &grouping) -> ObjectT;
+  auto operator()(const expr::Unary &unary) -> ObjectT;
+  auto operator()(const expr::Literal &literal) -> ObjectT;
+  auto operator()(const expr::Variable &variable) -> ObjectT;
+  auto operator()(const stmt::Expression &expression) -> ObjectT;
+  auto operator()(const stmt::Print &print) -> ObjectT;
+  auto operator()(const stmt::Var &var) -> ObjectT;
+  auto operator()(const stmt::Empty &empty) -> ObjectT;
 
 private:
   ErrorReporterPtr error_reporter_;
-  [[nodiscard]] auto Evaluate(const ExprPtr &expr) -> ObjectT;
+  Environment environment_{};
+  void Execute(const Stmt &stmt);
+  auto Evaluate(const Expr &expr) -> ObjectT;
   [[nodiscard]] static bool IsTruthy(const ObjectT &object);
   [[nodiscard]] static bool IsEqual(const ObjectT &left, const ObjectT &right);
   static void CheckNumberOperand(const Token &op, const ObjectT &operand);

@@ -1,11 +1,13 @@
 #include "Parser.h"
-#include "Common.h"
 #include "Ast.h"
+#include "Common.h"
 #include "Token.h"
-#include <exception>
+#include "Errors.h"
+
 #include <fmt/core.h>
 #include <stdexcept>
 #include <string_view>
+#include <vector>
 
 Token Parser::Previous() const { return tokens_.at(current_ - 1); }
 
@@ -40,14 +42,14 @@ Token Parser::Consume(TokenType type, std::string_view message)
   throw Error(Peek(), message);
 }
 
-std::invalid_argument Parser::Error(const Token& token, std::string_view message)
+ParseError Parser::Error(const Token &token, std::string_view message)
 {
   if (token.Type() == TokenType::EOF_) {
     error_reporter_->Report(token.Line(), " at end", message);
   } else {
     error_reporter_->Report(token.Line(), fmt::format(" at '{}'", token.Lexeme()), message);
   }
-  return std::invalid_argument("Parse error.");
+  return { "Parse error." };
 }
 
 void Parser::Synchronize()
@@ -75,6 +77,50 @@ void Parser::Synchronize()
   }
 }
 
+Stmt Parser::ParseDeclaration()
+{
+  try {
+    if (Match(TokenType::VAR)) { return ParseVarDeclaration(); }
+
+    return ParseStatement();
+  } catch (const std::invalid_argument &) {
+    Synchronize();
+    return stmt::Empty{};
+  }
+}
+
+Stmt Parser::ParseVarDeclaration()
+{
+  auto name = Consume(TokenType::IDENTIFIER, "Expect variable name.");
+
+  ExprPtr initializer{};
+  if (Match(TokenType::EQUAL)) { initializer = ParseExpression(); }
+
+  Consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
+  return stmt::Var{ name, initializer };
+}
+
+Stmt Parser::ParseStatement()
+{
+  if (Match(TokenType::PRINT)) { return ParsePrintStatement(); }
+
+  return ParseExpressionStatement();
+}
+
+Stmt Parser::ParsePrintStatement()
+{
+  auto value = ParseExpression();
+  Consume(TokenType::SEMICOLON, "Expect ';' after value.");
+  return stmt::Print(value);
+}
+
+Stmt Parser::ParseExpressionStatement()
+{
+  auto expr = ParseExpression();
+  Consume(TokenType::SEMICOLON, "Expect ';' after expression.");
+  return stmt::Expression(expr);
+}
+
 ExprPtr Parser::ParseExpression() { return ParseEquality(); }
 
 ExprPtr Parser::ParseEquality()
@@ -84,7 +130,7 @@ ExprPtr Parser::ParseEquality()
   while (Match(TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL)) {
     auto op = Previous();
     auto right = ParseComparison();
-    expr = MakeExpr<Binary>(expr, op, right);
+    expr = MakeExpr<expr::Binary>(expr, op, right);
   }
 
   return expr;
@@ -97,7 +143,7 @@ ExprPtr Parser::ParseComparison()
   while (Match(TokenType::GREATER, TokenType::GREATER_EQUAL, TokenType::LESS, TokenType::LESS_EQUAL)) {
     auto op = Previous();
     auto right = ParseTerm();
-    expr = MakeExpr<Binary>(expr, op, right);
+    expr = MakeExpr<expr::Binary>(expr, op, right);
   }
 
   return expr;
@@ -110,7 +156,7 @@ ExprPtr Parser::ParseTerm()
   while (Match(TokenType::MINUS, TokenType::PLUS)) {
     auto op = Previous();
     auto right = ParseFactor();
-    expr = MakeExpr<Binary>(expr, op, right);
+    expr = MakeExpr<expr::Binary>(expr, op, right);
   }
 
   return expr;
@@ -123,7 +169,7 @@ ExprPtr Parser::ParseFactor()
   while (Match(TokenType::SLASH, TokenType::STAR)) {
     auto op = Previous();
     auto right = ParseUnary();
-    expr = MakeExpr<Binary>(expr, op, right);
+    expr = MakeExpr<expr::Binary>(expr, op, right);
   }
 
   return expr;
@@ -134,7 +180,7 @@ ExprPtr Parser::ParseUnary()
   if (Match(TokenType::BANG, TokenType::MINUS)) {
     auto op = Previous();
     auto right = ParseUnary();
-    return MakeExpr<Unary>(op, right);
+    return MakeExpr<expr::Unary>(op, right);
   }
 
   return ParsePrimary();
@@ -142,26 +188,26 @@ ExprPtr Parser::ParseUnary()
 
 ExprPtr Parser::ParsePrimary()
 {
-  if (Match(TokenType::FALSE)) { return MakeExpr<Literal>(false); }
-  if (Match(TokenType::TRUE)) { return MakeExpr<Literal>(true); }
-  if (Match(TokenType::NIL)) { return MakeExpr<Literal>(Nil{}); }
+  if (Match(TokenType::FALSE)) { return MakeExpr<expr::Literal>(false); }
+  if (Match(TokenType::TRUE)) { return MakeExpr<expr::Literal>(true); }
+  if (Match(TokenType::NIL)) { return MakeExpr<expr::Literal>(Nil{}); }
 
-  if (Match(TokenType::NUMBER, TokenType::STRING)) { return MakeExpr<Literal>(Previous().Literal()); }
+  if (Match(TokenType::NUMBER, TokenType::STRING)) { return MakeExpr<expr::Literal>(Previous().Literal()); }
+
+  if (Match(TokenType::IDENTIFIER)) { return MakeExpr<expr::Variable>(Previous()); }
 
   if (Match(TokenType::LEFT_PAREN)) {
     auto expr = ParseExpression();
     Consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
-    return MakeExpr<Grouping>(expr);
+    return MakeExpr<expr::Grouping>(expr);
   }
 
   throw Error(Peek(), "Expect expression.");
 }
 
-ExprPtr Parser::Parse()
+std::vector<Stmt> Parser::Parse()
 {
-  try {
-    return ParseExpression();
-  } catch (std::exception &e) {
-    return nullptr;
-  }
+  std::vector<Stmt> statements{};
+  while (!IsAtEnd()) { statements.push_back(ParseDeclaration()); }
+  return statements;
 }

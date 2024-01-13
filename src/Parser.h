@@ -8,22 +8,28 @@
 #include "Ast.h"
 #include "ErrorReporter.h"
 #include "Token.h"
+#include "Errors.h"
 
 class Parser
 {
 public:
   Parser() = default;
   Parser(std::vector<Token> tokens, ErrorReporterPtr reporter)
-    : tokens_{ std::move(tokens) }, error_reporter_{ reporter }
+    : tokens_{ std::move(tokens) }, error_reporter_{ std::move(reporter) }
   {}
 
-  ExprPtr Parse();
+  std::vector<Stmt> Parse();
 
 private:
   std::vector<Token> tokens_;
   ErrorReporterPtr error_reporter_;
   int current_{ 0 };
 
+  [[nodiscard]] Stmt ParseDeclaration();
+  [[nodiscard]] Stmt ParseVarDeclaration();
+  [[nodiscard]] Stmt ParseStatement();
+  [[nodiscard]] Stmt ParsePrintStatement();
+  [[nodiscard]] Stmt ParseExpressionStatement();
   [[nodiscard]] ExprPtr ParseExpression();
   [[nodiscard]] ExprPtr ParseEquality();
   [[nodiscard]] ExprPtr ParseComparison();
@@ -41,7 +47,7 @@ private:
   Token Advance();
   Token Consume(TokenType, std::string_view message);
 
-  [[nodiscard]] std::invalid_argument Error(const Token &token, std::string_view message);
+  [[nodiscard]] ParseError Error(const Token &token, std::string_view message);
 
   void Synchronize();
 };

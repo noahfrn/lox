@@ -11,6 +11,7 @@
 #include <type_traits>
 #include <variant>
 
+
 template<typename T, typename... Args> struct Concatenator;
 template<typename... Args0, typename... Args1> struct Concatenator<std::variant<Args0...>, Args1...>
 {

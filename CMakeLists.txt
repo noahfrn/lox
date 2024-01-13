@@ -19,12 +19,13 @@ add_executable(lox src/main.cpp
         src/Token.h
         src/Lox.cpp
         src/Lox.h
-        src/Expr.h
         src/Common.h
         src/Ast.h
-        src/AstPrinter.h
         src/Parser.cpp
         src/Parser.h
         src/AstInterpreter.cpp
         src/AstInterpreter.h
+        src/Environment.cpp
+        src/Environment.h
+        src/Errors.h
 )
