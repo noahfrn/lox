@@ -4,6 +4,8 @@
 #include "Ast.h"
 #include "Common.h"
 #include "ErrorReporter.h"
+#include "Token.h"
+#include <stdexcept>
 
 class RuntimeError : public std::runtime_error
 {

@@ -37,6 +37,4 @@ struct Unary : Expr
   ExprPtr right_;
 };
 
-using ExprT = std::variant<Binary, Grouping, LiteralExpr, Unary>;
-
 #endif// LOX_EXPR_H

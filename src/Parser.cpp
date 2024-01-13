@@ -1,4 +1,5 @@
 #include "Parser.h"
+#include "Common.h"
 #include "Ast.h"
 #include "Token.h"
 #include <exception>
@@ -39,7 +40,7 @@ Token Parser::Consume(TokenType type, std::string_view message)
   throw Error(Peek(), message);
 }
 
-std::exception Parser::Error(const Token& token, std::string_view message)
+std::invalid_argument Parser::Error(const Token& token, std::string_view message)
 {
   if (token.Type() == TokenType::EOF_) {
     error_reporter_->Report(token.Line(), " at end", message);

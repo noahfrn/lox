@@ -32,6 +32,7 @@ int main(int argc, char **argv)
 
     Lox lox{};
     if (script.empty()) {
+      // REPL
       lox.RunPrompt();
     } else {
       return lox.RunFile(script) ? EXIT_FAILURE : EXIT_SUCCESS;
