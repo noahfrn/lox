@@ -1,7 +1,7 @@
 #ifndef LOX_TOKEN_H
 #define LOX_TOKEN_H
 
-#include "common.h"
+#include "Common.h"
 #include <cstdint>
 #include <fmt/format.h>
 #include <magic_enum/magic_enum.hpp>

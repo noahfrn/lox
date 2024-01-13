@@ -20,7 +20,7 @@ add_executable(lox src/main.cpp
         src/Lox.cpp
         src/Lox.h
         src/Expr.h
-        src/common.h
+        src/Common.h
         src/Ast.h
         src/AstPrinter.h
         src/Parser.cpp

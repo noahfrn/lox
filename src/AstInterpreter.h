@@ -2,8 +2,8 @@
 #define LOX_ASTINTERPRETER_H
 
 #include "Ast.h"
+#include "Common.h"
 #include "ErrorReporter.h"
-#include "common.h"
 
 class RuntimeError : public std::runtime_error
 {

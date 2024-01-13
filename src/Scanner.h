@@ -1,9 +1,9 @@
 #ifndef LOX_SCANNER_H
 #define LOX_SCANNER_H
 
+#include "Common.h"
 #include "ErrorReporter.h"
 #include "Token.h"
-#include "common.h"
 #include <string>
 #include <string_view>
 #include <utility>

@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     if (script.empty()) {
       lox.RunPrompt();
     } else {
-      lox.RunFile(script);
+      return lox.RunFile(script) ? EXIT_FAILURE : EXIT_SUCCESS;
     }
   } catch (std::exception &e) {
     auto msg = fmt::format("Caught identified exception: {}", e.what());

@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <variant>
-#include "common.h"
+#include "Common.h"
 #include "Token.h"
 
 struct Binary;

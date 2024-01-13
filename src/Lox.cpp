@@ -22,7 +22,7 @@ bool Lox::RunFile(std::string_view path)
 
   Run(buffer.str());
 
-  return had_error_;
+  return had_error_ || had_runtime_error_;
 }
 
 

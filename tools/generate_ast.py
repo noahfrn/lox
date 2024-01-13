@@ -68,7 +68,7 @@ def generate_includes() -> str:
     includes = StringIO()
     includes.write("#include <memory>\n")
     includes.write("#include <variant>\n")
-    includes.write("#include \"common.h\"\n")
+    includes.write("#include \"Common.h\"\n")
     includes.write("#include \"Token.h\"\n")
     includes.write("\n")
     return includes.getvalue()
