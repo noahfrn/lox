@@ -1,19 +1,14 @@
 #include <fstream>
 #include <iostream>
-#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <variant>
 
-#include "Ast.h"
-#include "AstPrinter.h"
-#include "ErrorReporter.h"
+
 #include "Lox.h"
 #include "Parser.h"
 #include "Scanner.h"
-#include "Token.h"
 #include "fmt/core.h"
 
 bool Lox::RunFile(std::string_view path)
