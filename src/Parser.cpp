@@ -46,7 +46,7 @@ std::exception Parser::Error(Token token, std::string_view message)
   } else {
     error_reporter_->Report(token.Line(), fmt::format(" at '{}'", token.Lexeme()), message);
   }
-  return std::runtime_error("Parse error.");
+  return std::invalid_argument("Parse error.");
 }
 
 void Parser::Synchronize()
