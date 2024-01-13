@@ -41,7 +41,7 @@ private:
   Token Advance();
   Token Consume(TokenType, std::string_view message);
 
-  [[nodiscard]] std::exception Error(Token token, std::string_view message);
+  [[nodiscard]] std::exception Error(const Token& token, std::string_view message);
 
   void Synchronize();
 };
