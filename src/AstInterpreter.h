@@ -22,6 +22,7 @@ public:
   auto operator()(const expr::Unary &unary) -> ObjectT;
   auto operator()(const expr::Literal &literal) -> ObjectT;
   auto operator()(const expr::Variable &variable) -> ObjectT;
+  auto operator()(const expr::Assign &assign) -> ObjectT;
   auto operator()(const stmt::Expression &expression) -> ObjectT;
   auto operator()(const stmt::Print &print) -> ObjectT;
   auto operator()(const stmt::Var &var) -> ObjectT;

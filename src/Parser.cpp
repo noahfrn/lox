@@ -1,12 +1,12 @@
 #include "Parser.h"
 #include "Ast.h"
-#include "Common.h"
-#include "Token.h"
 #include "Errors.h"
+#include "Token.h"
 
 #include <fmt/core.h>
 #include <stdexcept>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 Token Parser::Previous() const { return tokens_.at(current_ - 1); }
@@ -121,7 +121,26 @@ Stmt Parser::ParseExpressionStatement()
   return stmt::Expression(expr);
 }
 
-ExprPtr Parser::ParseExpression() { return ParseEquality(); }
+ExprPtr Parser::ParseExpression() { return ParseAssign(); }
+
+ExprPtr Parser::ParseAssign()
+{
+  auto expr = ParseEquality();
+
+  if (Match(TokenType::EQUAL)) {
+    auto equals = Previous();
+    auto value = ParseAssign();
+
+    if (std::holds_alternative<expr::Variable>(*expr)) {
+      auto name = std::get<expr::Variable>(*expr).name;
+      return MakeExpr<expr::Assign>(name, value);
+    }
+
+    Error(equals, "Invalid assignment target.");
+  }
+
+  return expr;
+}
 
 ExprPtr Parser::ParseEquality()
 {

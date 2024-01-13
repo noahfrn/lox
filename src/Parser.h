@@ -31,6 +31,7 @@ private:
   [[nodiscard]] Stmt ParsePrintStatement();
   [[nodiscard]] Stmt ParseExpressionStatement();
   [[nodiscard]] ExprPtr ParseExpression();
+  [[nodiscard]] ExprPtr ParseAssign();
   [[nodiscard]] ExprPtr ParseEquality();
   [[nodiscard]] ExprPtr ParseComparison();
   [[nodiscard]] ExprPtr ParseTerm();
@@ -47,7 +48,7 @@ private:
   Token Advance();
   Token Consume(TokenType, std::string_view message);
 
-  [[nodiscard]] ParseError Error(const Token &token, std::string_view message);
+  ParseError Error(const Token &token, std::string_view message);
 
   void Synchronize();
 };

@@ -106,7 +106,15 @@ auto AstInterpreter::operator()(const expr::Literal &literal) -> ObjectT { retur
 
 auto AstInterpreter::operator()(const expr::Grouping &grouping) -> ObjectT { return Evaluate(*grouping.expression); }
 
-ObjectT AstInterpreter::operator()(const expr::Variable &variable) { return environment_.Get(variable.name); }
+auto AstInterpreter::operator()(const expr::Variable &variable) -> ObjectT { return environment_.Get(variable.name); }
+
+auto AstInterpreter::operator()(const expr::Assign &assign) -> ObjectT
+{
+  auto value = Evaluate(*assign.value);
+  environment_.Assign(assign.name, value);
+  return value;
+}
+
 
 auto AstInterpreter::operator()(const stmt::Print &print) -> ObjectT
 {

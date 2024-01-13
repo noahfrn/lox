@@ -12,6 +12,7 @@ class Environment
 public:
   void Define(const std::string &name, const ObjectT &value);
   [[nodiscard]] ObjectT Get(const Token& name) const;
+  void Assign(const Token& name, const ObjectT& value);
 private:
   std::unordered_map<std::string, ObjectT> values_;
 };

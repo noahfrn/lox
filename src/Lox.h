@@ -3,6 +3,7 @@
 
 #include "AstInterpreter.h"
 #include "ErrorReporter.h"
+#include <memory>
 #include <string_view>
 
 class Lox

@@ -14,3 +14,13 @@ ObjectT Environment::Get(const Token &name) const
 
   throw RuntimeError(name, fmt::format("Undefined variable '{}'.", name.Lexeme()));
 }
+
+void Environment::Assign(const Token &name, const ObjectT &value)
+{
+  if (values_.contains(name.Lexeme())) {
+    values_[name.Lexeme()] = value;
+    return;
+  }
+
+  throw RuntimeError(name, fmt::format("Undefined variable '{}'.", name.Lexeme()));
+}

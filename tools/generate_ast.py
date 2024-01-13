@@ -6,6 +6,7 @@ from typing import Union
 
 
 class ExpressionType(Enum):
+    ASSIGN = "Assign"
     BINARY = "Binary"
     GROUPING = "Grouping"
     LITERAL = "Literal"
@@ -28,6 +29,10 @@ class FieldType(Enum):
 
 Ast = dict[Union[ExpressionType, StatementType], list[tuple[FieldType, str]]]
 EXPR_AST: Ast = {
+    ExpressionType.ASSIGN: [
+        (FieldType.TOKEN, "name"),
+        (FieldType.EXPRESSION, "value")
+    ],
     ExpressionType.BINARY: [
         (FieldType.EXPRESSION, "left"),
         (FieldType.TOKEN, "op"),

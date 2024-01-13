@@ -7,16 +7,22 @@
 #include "Token.h"
 
 namespace expr {
+struct Assign;
 struct Binary;
 struct Grouping;
 struct Literal;
 struct Unary;
 struct Variable;
 } // namespace expr
-using Expr = std::variant<expr::Binary, expr::Grouping, expr::Literal, expr::Unary, expr::Variable>;
+using Expr = std::variant<expr::Assign, expr::Binary, expr::Grouping, expr::Literal, expr::Unary, expr::Variable>;
 using ExprPtr = std::shared_ptr<Expr>;
 
 namespace expr {
+struct Assign {
+    Token name;
+    ExprPtr value;
+};
+
 struct Binary {
     ExprPtr left;
     Token op;
