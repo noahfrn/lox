@@ -2,6 +2,7 @@ import argparse
 import sys
 from enum import Enum
 from io import StringIO
+from typing import Union
 
 
 class ExpressionType(Enum):
@@ -11,14 +12,19 @@ class ExpressionType(Enum):
     UNARY = "Unary"
 
 
+class StatementType(Enum):
+    EXPRESSION = "Expression"
+    PRINT = "Print"
+
+
 class FieldType(Enum):
     EXPRESSION = "Expr"
     TOKEN = "Token"
     LITERAL = "LiteralT"
 
 
-Type = dict[ExpressionType, list[tuple[FieldType, str]]]
-AST = {
+Ast = dict[Union[ExpressionType, StatementType], list[tuple[FieldType, str]]]
+EXPR_AST: Ast = {
     ExpressionType.BINARY: [
         (FieldType.EXPRESSION, "left"),
         (FieldType.TOKEN, "op"),
@@ -30,10 +36,12 @@ AST = {
     ExpressionType.LITERAL: [
         (FieldType.LITERAL, "value"),
     ],
-    ExpressionType.UNARY: [
-        (FieldType.TOKEN, "op"),
-        (FieldType.EXPRESSION, "right"),
-    ],
+    ExpressionType.UNARY: [(FieldType.TOKEN, "op"), (FieldType.EXPRESSION, "right"),
+                           ],
+}
+STMT_AST: Ast = {
+    StatementType.EXPRESSION: [(FieldType.EXPRESSION, "expression")],
+    StatementType.PRINT: [(FieldType.EXPRESSION, "expression")],
 }
 
 
@@ -78,27 +86,27 @@ def generate_footer() -> str:
     return "#endif // LOX_AST_H\n"
 
 
-def generate_declarations() -> str:
+def generate_declarations(ast: Ast) -> str:
     declarations = StringIO()
-    for expr_type in AST.keys():
-        declarations.write(f"struct {expr_type.value};\n")
+    for key in ast.keys():
+        declarations.write(f"struct {key.value};\n")
     declarations.write("\n")
     return declarations.getvalue()
 
 
-def generate_expr_types() -> str:
+def generate_types(ast: Ast, name: str) -> str:
     expr_types = StringIO()
-    names = ', '.join([expr_type.value for expr_type in AST.keys()])
-    expr_types.write(f"using Expr = std::variant<{names}>;\n")
-    expr_types.write("using ExprPtr = std::shared_ptr<Expr>;\n")
+    names = ', '.join([str(key.value) for key in ast.keys()])
+    expr_types.write(f"using {name} = std::variant<{names}>;\n")
+    expr_types.write(f"using {name}Ptr = std::shared_ptr<{name}>;\n")
     expr_types.write("\n")
     return expr_types.getvalue()
 
 
-def generate_structs() -> str:
+def generate_structs(ast: Ast) -> str:
     structs = StringIO()
-    for expr_type, fields in AST.items():
-        structs.write(f"struct {expr_type.value} {{\n")
+    for key, fields in ast.items():
+        structs.write(f"struct {key.value} {{\n")
         for field_type, field_name in fields:
             structs.write(f"    {generate_type(field_type)} {field_name};\n")
         structs.write("};\n")
@@ -106,38 +114,40 @@ def generate_structs() -> str:
     return structs.getvalue()
 
 
-def generate_helpers() -> str:
+def generate_helpers(name: str) -> str:
     helpers = StringIO()
-    helpers.write(f"template <typename ExprType, typename... Args>\n")
-    helpers.write(f"auto MakeExpr(Args&&... args) -> ExprPtr\n")
+    helpers.write(f"template <typename {name}Type, typename... Args>\n")
+    helpers.write(f"auto Make{name}(Args&&... args) -> {name}Ptr\n")
     helpers.write(f"{{\n")
-    helpers.write(f"    return std::make_shared<Expr>(ExprType{{std::forward<Args>(args)...}});\n")
+    helpers.write(f"    return std::make_shared<{name}>({name}Type{{std::forward<Args>(args)...}});\n")
     helpers.write(f"}}\n")
     helpers.write("\n")
     return helpers.getvalue()
 
 
-def generate_ast() -> str:
+def generate(ast: Ast, name: str) -> str:
+    buffer = StringIO()
+    buffer.write(generate_declarations(ast))
+    buffer.write(generate_types(ast, name))
+    buffer.write(generate_structs(ast))
+    buffer.write(generate_helpers(name))
+    return buffer.getvalue()
+
+
+def main(output: str) -> None:
     ast = StringIO()
 
     ast.write(generate_header())
     ast.write(generate_includes())
-    ast.write(generate_declarations())
-    ast.write(generate_expr_types())
-    ast.write(generate_structs())
-    ast.write(generate_helpers())
+    ast.write(generate(EXPR_AST, "Expr"))
+    ast.write(generate(STMT_AST, "Stmt"))
     ast.write(generate_footer())
 
-    return ast.getvalue()
-
-
-def main(output: str) -> None:
-    ast = generate_ast()
     if output == "-":
-        sys.stdout.write(ast)
+        sys.stdout.write(ast.getvalue())
     else:
         with open(output, "w") as f:
-            f.write(ast)
+            f.write(ast.getvalue())
 
 
 if __name__ == '__main__':
