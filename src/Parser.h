@@ -29,6 +29,7 @@ private:
   [[nodiscard]] Stmt ParseVarDeclaration();
   [[nodiscard]] Stmt ParseStatement();
   [[nodiscard]] Stmt ParsePrintStatement();
+  [[nodiscard]] std::vector<Stmt> ParseBlock();
   [[nodiscard]] Stmt ParseExpressionStatement();
   [[nodiscard]] ExprPtr ParseExpression();
   [[nodiscard]] ExprPtr ParseAssign();

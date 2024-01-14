@@ -1,11 +1,14 @@
 #include "AstInterpreter.h"
 #include "Ast.h"
+#include "Environment.h"
 #include "Errors.h"
 #include "Token.h"
 
 #include <fmt/core.h>
+#include <memory>
 #include <string>
 #include <variant>
+#include <vector>
 
 bool AstInterpreter::IsTruthy(const ObjectT &object)
 {
@@ -41,9 +44,22 @@ void AstInterpreter::CheckNumberOperands(const Token &op, const ObjectT &left, c
   throw RuntimeError(op, fmt::format("Operands must be numbers: {} {}", left, right));
 }
 
-auto AstInterpreter::Evaluate(const Expr &expr) -> ObjectT { return std::visit(*this, expr); }
+ObjectT AstInterpreter::Evaluate(const Expr &expr) { return std::visit(*this, expr); }
 
-auto AstInterpreter::Execute(const Stmt &stmt) -> void { std::visit(*this, stmt); }
+void AstInterpreter::Execute(const Stmt &stmt) { std::visit(*this, stmt); }
+
+void AstInterpreter::ExecuteBlock(const std::vector<Stmt> &stmts, Environment environment)
+{
+  auto previous = environment_;
+  try {
+    environment_ = std::make_shared<Environment>(std::move(environment));
+    for (const auto &stmt : stmts) { Execute(stmt); }
+  } catch (...) {
+    environment_ = std::move(previous);
+    throw;
+  }
+  environment_ = std::move(previous);
+}
 
 auto AstInterpreter::operator()(const expr::Unary &unary) -> ObjectT
 {
@@ -106,42 +122,40 @@ auto AstInterpreter::operator()(const expr::Literal &literal) -> ObjectT { retur
 
 auto AstInterpreter::operator()(const expr::Grouping &grouping) -> ObjectT { return Evaluate(*grouping.expression); }
 
-auto AstInterpreter::operator()(const expr::Variable &variable) -> ObjectT { return environment_.Get(variable.name); }
+auto AstInterpreter::operator()(const expr::Variable &variable) -> ObjectT { return environment_->Get(variable.name); }
 
 auto AstInterpreter::operator()(const expr::Assign &assign) -> ObjectT
 {
   auto value = Evaluate(*assign.value);
-  environment_.Assign(assign.name, value);
+  environment_->Assign(assign.name, value);
   return value;
 }
 
 
-auto AstInterpreter::operator()(const stmt::Print &print) -> ObjectT
+auto AstInterpreter::operator()(const stmt::Print &print) -> void
 {
   auto value = Evaluate(*print.expression);
   fmt::print("{}\n", value);
-  return Nil{};
 }
 
-auto AstInterpreter::operator()(const stmt::Expression &expression) -> ObjectT
-{
-  Evaluate(*expression.expression);
-  return Nil{};
-}
+auto AstInterpreter::operator()(const stmt::Expression &expression) -> void { Evaluate(*expression.expression); }
 
-auto AstInterpreter::operator()(const stmt::Var &var) -> ObjectT
+auto AstInterpreter::operator()(const stmt::Var &var) -> void
 {
   if (var.initializer) {
     auto value = Evaluate(*var.initializer);
-    environment_.Define(var.name.Lexeme(), value);
+    environment_->Define(var.name.Lexeme(), value);
   } else {
-    environment_.Define(var.name.Lexeme(), Nil{});
+    environment_->Define(var.name.Lexeme(), Nil{});
   }
-
-  return Nil{};
 }
 
-auto AstInterpreter::operator()(const stmt::Empty &empty) -> ObjectT { return Nil{}; }
+auto AstInterpreter::operator()([[maybe_unused]] const stmt::Empty &empty) -> void {}
+
+auto AstInterpreter::operator()(const stmt::Block &block) -> void
+{
+  ExecuteBlock(block.statements, Environment{ environment_ });
+}
 
 void AstInterpreter::Interpret(const std::vector<Stmt> &stmts)
 {

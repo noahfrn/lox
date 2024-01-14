@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <variant>
+#include <vector>
 #include "Common.h"
 #include "Token.h"
 
@@ -58,8 +59,9 @@ struct Expression;
 struct Print;
 struct Var;
 struct Empty;
+struct Block;
 } // namespace stmt
-using Stmt = std::variant<stmt::Expression, stmt::Print, stmt::Var, stmt::Empty>;
+using Stmt = std::variant<stmt::Expression, stmt::Print, stmt::Var, stmt::Empty, stmt::Block>;
 using StmtPtr = std::shared_ptr<Stmt>;
 
 namespace stmt {
@@ -77,6 +79,10 @@ struct Var {
 };
 
 struct Empty {
+};
+
+struct Block {
+    std::vector<Stmt> statements;
 };
 
 } // namespace stmt

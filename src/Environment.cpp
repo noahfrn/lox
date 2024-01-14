@@ -12,6 +12,8 @@ ObjectT Environment::Get(const Token &name) const
 {
   if (values_.contains(name.Lexeme())) { return values_.at(name.Lexeme()); }
 
+  if (enclosing_) { return enclosing_->Get(name); }
+
   throw RuntimeError(name, fmt::format("Undefined variable '{}'.", name.Lexeme()));
 }
 
@@ -19,6 +21,11 @@ void Environment::Assign(const Token &name, const ObjectT &value)
 {
   if (values_.contains(name.Lexeme())) {
     values_[name.Lexeme()] = value;
+    return;
+  }
+
+  if (enclosing_) {
+    enclosing_->Assign(name, value);
     return;
   }
 

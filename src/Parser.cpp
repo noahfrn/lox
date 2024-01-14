@@ -103,6 +103,7 @@ Stmt Parser::ParseVarDeclaration()
 Stmt Parser::ParseStatement()
 {
   if (Match(TokenType::PRINT)) { return ParsePrintStatement(); }
+  if (Match(TokenType::LEFT_BRACE)) { return stmt::Block{ ParseBlock() }; }
 
   return ParseExpressionStatement();
 }
@@ -112,6 +113,16 @@ Stmt Parser::ParsePrintStatement()
   auto value = ParseExpression();
   Consume(TokenType::SEMICOLON, "Expect ';' after value.");
   return stmt::Print(value);
+}
+
+std::vector<Stmt> Parser::ParseBlock()
+{
+  std::vector<Stmt> statements{};
+
+  while (!Check(TokenType::RIGHT_BRACE) && !IsAtEnd()) { statements.push_back(ParseDeclaration()); }
+
+  Consume(TokenType::RIGHT_BRACE, "Expect '}' after block.");
+  return statements;
 }
 
 Stmt Parser::ParseExpressionStatement()

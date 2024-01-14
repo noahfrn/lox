@@ -19,40 +19,64 @@ class StatementType(Enum):
     PRINT = "Print"
     VAR = "Var"
     EMPTY = "Empty"
+    BLOCK = "Block"
 
 
 class FieldType(Enum):
-    EXPRESSION = "Expr"
+    EXPRESSION = "ExprPtr"
+    STATEMENT = "Stmt"
     TOKEN = "Token"
     LITERAL = "LiteralT"
+    VECTOR = "std::vector"
 
 
-Ast = dict[Union[ExpressionType, StatementType], list[tuple[FieldType, str]]]
+class SimpleField:
+    def __init__(self, field_type: FieldType, name: str) -> None:
+        self.field_type = field_type
+        self.name = name
+
+    def __str__(self):
+        return f"{self.field_type.value} {self.name}"
+
+
+class NestedField:
+    def __init__(self, field_type: FieldType, subtype: FieldType, name: str) -> None:
+        self.field_type = field_type
+        self.subtype = subtype
+        self.name = name
+
+    def __str__(self):
+        return f"{self.field_type.value}<{self.subtype.value}> {self.name}"
+
+
+Field = Union[SimpleField, NestedField]
+Ast = dict[Union[ExpressionType, StatementType], list[Union[SimpleField, NestedField]]]
 EXPR_AST: Ast = {
     ExpressionType.ASSIGN: [
-        (FieldType.TOKEN, "name"),
-        (FieldType.EXPRESSION, "value")
+        SimpleField(FieldType.TOKEN, "name"),
+        SimpleField(FieldType.EXPRESSION, "value")
     ],
     ExpressionType.BINARY: [
-        (FieldType.EXPRESSION, "left"),
-        (FieldType.TOKEN, "op"),
-        (FieldType.EXPRESSION, "right"),
+        SimpleField(FieldType.EXPRESSION, "left"),
+        SimpleField(FieldType.TOKEN, "op"),
+        SimpleField(FieldType.EXPRESSION, "right"),
     ],
     ExpressionType.GROUPING: [
-        (FieldType.EXPRESSION, "expression"),
+        SimpleField(FieldType.EXPRESSION, "expression"),
     ],
     ExpressionType.LITERAL: [
-        (FieldType.LITERAL, "value"),
+        SimpleField(FieldType.LITERAL, "value"),
     ],
-    ExpressionType.UNARY: [(FieldType.TOKEN, "op"), (FieldType.EXPRESSION, "right"),
+    ExpressionType.UNARY: [SimpleField(FieldType.TOKEN, "op"), SimpleField(FieldType.EXPRESSION, "right"),
                            ],
-    ExpressionType.VARIABLE: [(FieldType.TOKEN, "name")],
+    ExpressionType.VARIABLE: [SimpleField(FieldType.TOKEN, "name")],
 }
 STMT_AST: Ast = {
-    StatementType.EXPRESSION: [(FieldType.EXPRESSION, "expression")],
-    StatementType.PRINT: [(FieldType.EXPRESSION, "expression")],
-    StatementType.VAR: [(FieldType.TOKEN, "name"), (FieldType.EXPRESSION, "initializer")],
+    StatementType.EXPRESSION: [SimpleField(FieldType.EXPRESSION, "expression")],
+    StatementType.PRINT: [SimpleField(FieldType.EXPRESSION, "expression")],
+    StatementType.VAR: [SimpleField(FieldType.TOKEN, "name"), SimpleField(FieldType.EXPRESSION, "initializer")],
     StatementType.EMPTY: [],
+    StatementType.BLOCK: [NestedField(FieldType.VECTOR, FieldType.STATEMENT, "statements")],
 }
 
 
@@ -64,15 +88,8 @@ def unique_ptr(val: str) -> str:
     return f"std::unique_ptr<{val}>"
 
 
-def generate_type(field_type: FieldType) -> str:
-    if field_type == FieldType.EXPRESSION:
-        return "ExprPtr"
-    elif field_type == FieldType.TOKEN:
-        return "Token"
-    elif field_type == FieldType.LITERAL:
-        return "LiteralT"
-    else:
-        raise ValueError(f"Unknown field type: {field_type}")
+def generate_type(field_type: Field) -> str:
+    return str(field_type)
 
 
 def generate_header() -> str:
@@ -87,6 +104,7 @@ def generate_includes() -> str:
     includes = StringIO()
     includes.write("#include <memory>\n")
     includes.write("#include <variant>\n")
+    includes.write("#include <vector>\n")
     includes.write("#include \"Common.h\"\n")
     includes.write("#include \"Token.h\"\n")
     includes.write("\n")
@@ -120,8 +138,8 @@ def generate_structs(ast: Ast, name: str) -> str:
     structs.write(f"namespace {name.lower()} {{\n")
     for key, fields in ast.items():
         structs.write(f"struct {key.value} {{\n")
-        for field_type, field_name in fields:
-            structs.write(f"    {generate_type(field_type)} {field_name};\n")
+        for field in fields:
+            structs.write(f"    {generate_type(field)};\n")
         structs.write("};\n")
         structs.write("\n")
     structs.write(f"}} // namespace {name.lower()}\n")
