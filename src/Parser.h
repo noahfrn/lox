@@ -28,11 +28,14 @@ private:
   [[nodiscard]] Stmt ParseDeclaration();
   [[nodiscard]] Stmt ParseVarDeclaration();
   [[nodiscard]] Stmt ParseStatement();
-  [[nodiscard]] Stmt ParsePrintStatement();
+  [[nodiscard]] Stmt ParseIf();
+  [[nodiscard]] Stmt ParsePrint();
   [[nodiscard]] std::vector<Stmt> ParseBlock();
   [[nodiscard]] Stmt ParseExpressionStatement();
   [[nodiscard]] ExprPtr ParseExpression();
   [[nodiscard]] ExprPtr ParseAssign();
+  [[nodiscard]] ExprPtr ParseOr();
+  [[nodiscard]] ExprPtr ParseAnd();
   [[nodiscard]] ExprPtr ParseEquality();
   [[nodiscard]] ExprPtr ParseComparison();
   [[nodiscard]] ExprPtr ParseTerm();

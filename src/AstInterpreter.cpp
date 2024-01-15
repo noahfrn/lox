@@ -131,6 +131,19 @@ auto AstInterpreter::operator()(const expr::Assign &assign) -> ObjectT
   return value;
 }
 
+auto AstInterpreter::operator()(const expr::Logical &logical) -> ObjectT
+{
+  auto left = Evaluate(*logical.left);
+
+  if (logical.op.Type() == TokenType::OR) {
+    if (IsTruthy(left)) { return left; }
+  } else {
+    if (!IsTruthy(left)) { return left; }
+  }
+
+  return Evaluate(*logical.right);
+}
+
 
 auto AstInterpreter::operator()(const stmt::Print &print) -> void
 {
@@ -147,6 +160,15 @@ auto AstInterpreter::operator()(const stmt::Var &var) -> void
     environment_->Define(var.name.Lexeme(), value);
   } else {
     environment_->Define(var.name.Lexeme(), Nil{});
+  }
+}
+
+auto AstInterpreter::operator()(const stmt::If &stmt) -> void
+{
+  if (IsTruthy(Evaluate(*stmt.condition))) {
+    Execute(*stmt.then_branch);
+  } else if (!std::holds_alternative<stmt::Empty>(*stmt.else_branch)) {
+    Execute(*stmt.else_branch);
   }
 }
 

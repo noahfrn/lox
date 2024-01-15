@@ -22,7 +22,9 @@ public:
   auto operator()(const expr::Literal &literal) -> ObjectT;
   auto operator()(const expr::Variable &variable) -> ObjectT;
   auto operator()(const expr::Assign &assign) -> ObjectT;
+  auto operator()(const expr::Logical &assign) -> ObjectT;
   auto operator()(const stmt::Expression &expression) -> void;
+  auto operator()(const stmt::If &block) -> void;
   auto operator()(const stmt::Print &print) -> void;
   auto operator()(const stmt::Var &var) -> void;
   auto operator()(const stmt::Empty &empty) -> void;

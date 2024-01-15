@@ -83,7 +83,7 @@ Stmt Parser::ParseDeclaration()
     if (Match(TokenType::VAR)) { return ParseVarDeclaration(); }
 
     return ParseStatement();
-  } catch (const std::invalid_argument &) {
+  } catch (const ParseError &) {
     Synchronize();
     return stmt::Empty{};
   }
@@ -102,13 +102,25 @@ Stmt Parser::ParseVarDeclaration()
 
 Stmt Parser::ParseStatement()
 {
-  if (Match(TokenType::PRINT)) { return ParsePrintStatement(); }
+  if (Match(TokenType::IF)) { return ParseIf(); }
+  if (Match(TokenType::PRINT)) { return ParsePrint(); }
   if (Match(TokenType::LEFT_BRACE)) { return stmt::Block{ ParseBlock() }; }
 
   return ParseExpressionStatement();
 }
 
-Stmt Parser::ParsePrintStatement()
+Stmt Parser::ParseIf()
+{
+  Consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.");
+  auto condition = ParseExpression();
+  Consume(TokenType::RIGHT_PAREN, "Expect ')' after if condition.");
+
+  auto then_branch = std::make_shared<Stmt>(ParseStatement());
+  return Match(TokenType::ELSE) ? stmt::If(condition, then_branch, std::make_shared<Stmt>(stmt::Empty{}))
+                                : stmt::If(condition, then_branch, std::make_shared<Stmt>(ParseStatement()));
+}
+
+Stmt Parser::ParsePrint()
 {
   auto value = ParseExpression();
   Consume(TokenType::SEMICOLON, "Expect ';' after value.");
@@ -136,7 +148,7 @@ ExprPtr Parser::ParseExpression() { return ParseAssign(); }
 
 ExprPtr Parser::ParseAssign()
 {
-  auto expr = ParseEquality();
+  auto expr = ParseOr();
 
   if (Match(TokenType::EQUAL)) {
     auto equals = Previous();
@@ -148,6 +160,32 @@ ExprPtr Parser::ParseAssign()
     }
 
     Error(equals, "Invalid assignment target.");
+  }
+
+  return expr;
+}
+
+ExprPtr Parser::ParseOr()
+{
+  auto expr = ParseAnd();
+
+  while (Match(TokenType::OR)) {
+    auto op = Previous();
+    auto right = ParseAnd();
+    expr = MakeExpr<expr::Logical>(expr, op, right);
+  }
+
+  return expr;
+}
+
+ExprPtr Parser::ParseAnd()
+{
+  auto expr = ParseEquality();
+
+  while (Match(TokenType::AND)) {
+    auto op = Previous();
+    auto right = ParseEquality();
+    expr = MakeExpr<expr::Logical>(expr, op, right);
   }
 
   return expr;

@@ -10,12 +10,14 @@ class ExpressionType(Enum):
     BINARY = "Binary"
     GROUPING = "Grouping"
     LITERAL = "Literal"
+    LOGICAL = "Logical"
     UNARY = "Unary"
     VARIABLE = "Variable"
 
 
 class StatementType(Enum):
     EXPRESSION = "Expression"
+    IF = "If"
     PRINT = "Print"
     VAR = "Var"
     EMPTY = "Empty"
@@ -23,7 +25,8 @@ class StatementType(Enum):
 
 
 class FieldType(Enum):
-    EXPRESSION = "ExprPtr"
+    EXPRESSION_PTR = "ExprPtr"
+    STATEMENT_PTR = "StmtPtr"
     STATEMENT = "Stmt"
     TOKEN = "Token"
     LITERAL = "LiteralT"
@@ -54,27 +57,34 @@ Ast = dict[Union[ExpressionType, StatementType], list[Union[SimpleField, NestedF
 EXPR_AST: Ast = {
     ExpressionType.ASSIGN: [
         SimpleField(FieldType.TOKEN, "name"),
-        SimpleField(FieldType.EXPRESSION, "value")
+        SimpleField(FieldType.EXPRESSION_PTR, "value")
     ],
     ExpressionType.BINARY: [
-        SimpleField(FieldType.EXPRESSION, "left"),
+        SimpleField(FieldType.EXPRESSION_PTR, "left"),
         SimpleField(FieldType.TOKEN, "op"),
-        SimpleField(FieldType.EXPRESSION, "right"),
+        SimpleField(FieldType.EXPRESSION_PTR, "right"),
     ],
     ExpressionType.GROUPING: [
-        SimpleField(FieldType.EXPRESSION, "expression"),
+        SimpleField(FieldType.EXPRESSION_PTR, "expression"),
     ],
     ExpressionType.LITERAL: [
         SimpleField(FieldType.LITERAL, "value"),
     ],
-    ExpressionType.UNARY: [SimpleField(FieldType.TOKEN, "op"), SimpleField(FieldType.EXPRESSION, "right"),
+    ExpressionType.LOGICAL: [
+        SimpleField(FieldType.EXPRESSION_PTR, "left"), SimpleField(FieldType.TOKEN, "op"),
+        SimpleField(FieldType.EXPRESSION_PTR, "right")
+    ],
+    ExpressionType.UNARY: [SimpleField(FieldType.TOKEN, "op"), SimpleField(FieldType.EXPRESSION_PTR, "right"),
                            ],
     ExpressionType.VARIABLE: [SimpleField(FieldType.TOKEN, "name")],
 }
 STMT_AST: Ast = {
-    StatementType.EXPRESSION: [SimpleField(FieldType.EXPRESSION, "expression")],
-    StatementType.PRINT: [SimpleField(FieldType.EXPRESSION, "expression")],
-    StatementType.VAR: [SimpleField(FieldType.TOKEN, "name"), SimpleField(FieldType.EXPRESSION, "initializer")],
+    StatementType.EXPRESSION: [SimpleField(FieldType.EXPRESSION_PTR, "expression")],
+    StatementType.IF: [SimpleField(FieldType.EXPRESSION_PTR, "condition"),
+                       SimpleField(FieldType.STATEMENT_PTR, "then_branch"),
+                       SimpleField(FieldType.STATEMENT_PTR, "else_branch")],
+    StatementType.PRINT: [SimpleField(FieldType.EXPRESSION_PTR, "expression")],
+    StatementType.VAR: [SimpleField(FieldType.TOKEN, "name"), SimpleField(FieldType.EXPRESSION_PTR, "initializer")],
     StatementType.EMPTY: [],
     StatementType.BLOCK: [NestedField(FieldType.VECTOR, FieldType.STATEMENT, "statements")],
 }

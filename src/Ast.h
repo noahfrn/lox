@@ -12,10 +12,11 @@ struct Assign;
 struct Binary;
 struct Grouping;
 struct Literal;
+struct Logical;
 struct Unary;
 struct Variable;
 } // namespace expr
-using Expr = std::variant<expr::Assign, expr::Binary, expr::Grouping, expr::Literal, expr::Unary, expr::Variable>;
+using Expr = std::variant<expr::Assign, expr::Binary, expr::Grouping, expr::Literal, expr::Logical, expr::Unary, expr::Variable>;
 using ExprPtr = std::shared_ptr<Expr>;
 
 namespace expr {
@@ -38,6 +39,12 @@ struct Literal {
     LiteralT value;
 };
 
+struct Logical {
+    ExprPtr left;
+    Token op;
+    ExprPtr right;
+};
+
 struct Unary {
     Token op;
     ExprPtr right;
@@ -56,17 +63,24 @@ auto MakeExpr(Args&&... args) -> ExprPtr
 
 namespace stmt {
 struct Expression;
+struct If;
 struct Print;
 struct Var;
 struct Empty;
 struct Block;
 } // namespace stmt
-using Stmt = std::variant<stmt::Expression, stmt::Print, stmt::Var, stmt::Empty, stmt::Block>;
+using Stmt = std::variant<stmt::Expression, stmt::If, stmt::Print, stmt::Var, stmt::Empty, stmt::Block>;
 using StmtPtr = std::shared_ptr<Stmt>;
 
 namespace stmt {
 struct Expression {
     ExprPtr expression;
+};
+
+struct If {
+    ExprPtr condition;
+    StmtPtr then_branch;
+    StmtPtr else_branch;
 };
 
 struct Print {
