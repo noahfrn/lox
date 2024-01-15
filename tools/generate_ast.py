@@ -8,6 +8,7 @@ from typing import Union
 class ExpressionType(Enum):
     ASSIGN = "Assign"
     BINARY = "Binary"
+    CALL = "Call"
     GROUPING = "Grouping"
     LITERAL = "Literal"
     LOGICAL = "Logical"
@@ -20,12 +21,14 @@ class StatementType(Enum):
     IF = "If"
     PRINT = "Print"
     VAR = "Var"
+    WHILE = "While"
     EMPTY = "Empty"
     BLOCK = "Block"
 
 
 class FieldType(Enum):
     EXPRESSION_PTR = "ExprPtr"
+    EXPRESSION = "ExprPtr"
     STATEMENT_PTR = "StmtPtr"
     STATEMENT = "Stmt"
     TOKEN = "Token"
@@ -64,6 +67,11 @@ EXPR_AST: Ast = {
         SimpleField(FieldType.TOKEN, "op"),
         SimpleField(FieldType.EXPRESSION_PTR, "right"),
     ],
+    ExpressionType.CALL: [
+        SimpleField(FieldType.EXPRESSION_PTR, "callee"),
+        SimpleField(FieldType.TOKEN, "paren"),
+        NestedField(FieldType.VECTOR, FieldType.EXPRESSION, "arguments")
+    ],
     ExpressionType.GROUPING: [
         SimpleField(FieldType.EXPRESSION_PTR, "expression"),
     ],
@@ -85,6 +93,8 @@ STMT_AST: Ast = {
                        SimpleField(FieldType.STATEMENT_PTR, "else_branch")],
     StatementType.PRINT: [SimpleField(FieldType.EXPRESSION_PTR, "expression")],
     StatementType.VAR: [SimpleField(FieldType.TOKEN, "name"), SimpleField(FieldType.EXPRESSION_PTR, "initializer")],
+    StatementType.WHILE: [SimpleField(FieldType.EXPRESSION_PTR, "condition"),
+                          SimpleField(FieldType.STATEMENT_PTR, "body")],
     StatementType.EMPTY: [],
     StatementType.BLOCK: [NestedField(FieldType.VECTOR, FieldType.STATEMENT, "statements")],
 }

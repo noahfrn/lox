@@ -29,7 +29,9 @@ private:
   [[nodiscard]] Stmt ParseVarDeclaration();
   [[nodiscard]] Stmt ParseStatement();
   [[nodiscard]] Stmt ParseIf();
+  [[nodiscard]] Stmt ParseFor();
   [[nodiscard]] Stmt ParsePrint();
+  [[nodiscard]] Stmt ParseWhile();
   [[nodiscard]] std::vector<Stmt> ParseBlock();
   [[nodiscard]] Stmt ParseExpressionStatement();
   [[nodiscard]] ExprPtr ParseExpression();
@@ -40,6 +42,7 @@ private:
   [[nodiscard]] ExprPtr ParseComparison();
   [[nodiscard]] ExprPtr ParseTerm();
   [[nodiscard]] ExprPtr ParseFactor();
+  [[nodiscard]] ExprPtr ParseCall();
   [[nodiscard]] ExprPtr ParseUnary();
   [[nodiscard]] ExprPtr ParsePrimary();
 
@@ -53,6 +56,8 @@ private:
   Token Consume(TokenType, std::string_view message);
 
   ParseError Error(const Token &token, std::string_view message);
+
+  [[nodiscard]] ExprPtr FinishCall(ExprPtr);
 
   void Synchronize();
 };

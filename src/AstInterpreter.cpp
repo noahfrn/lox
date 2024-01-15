@@ -1,7 +1,9 @@
 #include "AstInterpreter.h"
 #include "Ast.h"
+#include "Common.h"
 #include "Environment.h"
 #include "Errors.h"
+#include "LoxCallable.h"
 #include "Token.h"
 
 #include <fmt/core.h>
@@ -118,7 +120,19 @@ auto AstInterpreter::operator()(const expr::Binary &binary) -> ObjectT
   }
 }
 
-auto AstInterpreter::operator()(const expr::Literal &literal) -> ObjectT { return literal.value; }
+auto AstInterpreter::operator()(const expr::Literal &literal) -> ObjectT
+{
+  return std::visit(
+    [](auto &&arg) -> ObjectT {
+      using T = std::decay_t<decltype(arg)>;
+      if constexpr (std::is_same_v<T, Nil>) {
+        return ObjectT{ std::monostate{} };
+      } else {
+        return ObjectT{ arg };
+      }
+    },
+    literal.value);
+}
 
 auto AstInterpreter::operator()(const expr::Grouping &grouping) -> ObjectT { return Evaluate(*grouping.expression); }
 
@@ -144,11 +158,34 @@ auto AstInterpreter::operator()(const expr::Logical &logical) -> ObjectT
   return Evaluate(*logical.right);
 }
 
+auto AstInterpreter::operator()(const expr::Call &call) -> ObjectT
+{
+  auto callee = Evaluate(*call.callee);
+
+  std::vector<ObjectT> arguments;
+  for (const auto &argument : call.arguments) { arguments.push_back(Evaluate(*argument)); }
+
+  if (!std::holds_alternative<LoxCallablePtr>(callee)) {
+    throw RuntimeError(call.paren, "Can only call functions and classes.");
+  }
+
+  auto function = std::get<LoxCallablePtr>(callee);
+  if (arguments.size() != function->Arity()) {
+    throw RuntimeError(
+      call.paren, fmt::format("Expected {} arguments but got {}.", function->Arity(), arguments.size()));
+  }
+  return function->Call(this, arguments);
+}
 
 auto AstInterpreter::operator()(const stmt::Print &print) -> void
 {
   auto value = Evaluate(*print.expression);
   fmt::print("{}\n", value);
+}
+
+auto AstInterpreter::operator()(const stmt::While &stmt) -> void
+{
+  while (IsTruthy(Evaluate(*stmt.condition))) { Execute(*stmt.body); }
 }
 
 auto AstInterpreter::operator()(const stmt::Expression &expression) -> void { Evaluate(*expression.expression); }

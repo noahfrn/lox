@@ -28,4 +28,6 @@ add_executable(lox src/main.cpp
         src/Environment.cpp
         src/Environment.h
         src/Errors.h
+        src/LoxCallable.h
+        src/ClockCallable.h
 )

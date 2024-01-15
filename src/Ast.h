@@ -10,13 +10,14 @@
 namespace expr {
 struct Assign;
 struct Binary;
+struct Call;
 struct Grouping;
 struct Literal;
 struct Logical;
 struct Unary;
 struct Variable;
 } // namespace expr
-using Expr = std::variant<expr::Assign, expr::Binary, expr::Grouping, expr::Literal, expr::Logical, expr::Unary, expr::Variable>;
+using Expr = std::variant<expr::Assign, expr::Binary, expr::Call, expr::Grouping, expr::Literal, expr::Logical, expr::Unary, expr::Variable>;
 using ExprPtr = std::shared_ptr<Expr>;
 
 namespace expr {
@@ -29,6 +30,12 @@ struct Binary {
     ExprPtr left;
     Token op;
     ExprPtr right;
+};
+
+struct Call {
+    ExprPtr callee;
+    Token paren;
+    std::vector<ExprPtr> arguments;
 };
 
 struct Grouping {
@@ -66,10 +73,11 @@ struct Expression;
 struct If;
 struct Print;
 struct Var;
+struct While;
 struct Empty;
 struct Block;
 } // namespace stmt
-using Stmt = std::variant<stmt::Expression, stmt::If, stmt::Print, stmt::Var, stmt::Empty, stmt::Block>;
+using Stmt = std::variant<stmt::Expression, stmt::If, stmt::Print, stmt::Var, stmt::While, stmt::Empty, stmt::Block>;
 using StmtPtr = std::shared_ptr<Stmt>;
 
 namespace stmt {
@@ -90,6 +98,11 @@ struct Print {
 struct Var {
     Token name;
     ExprPtr initializer;
+};
+
+struct While {
+    ExprPtr condition;
+    StmtPtr body;
 };
 
 struct Empty {

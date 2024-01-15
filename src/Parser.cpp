@@ -4,6 +4,7 @@
 #include "Token.h"
 
 #include <fmt/core.h>
+#include <memory>
 #include <stdexcept>
 #include <string_view>
 #include <variant>
@@ -50,6 +51,24 @@ ParseError Parser::Error(const Token &token, std::string_view message)
     error_reporter_->Report(token.Line(), fmt::format(" at '{}'", token.Lexeme()), message);
   }
   return { "Parse error." };
+}
+
+ExprPtr Parser::FinishCall(ExprPtr callee)
+{
+  std::vector<ExprPtr> arguments{};
+
+  if (!Check(TokenType::RIGHT_PAREN)) {
+    do {
+      if (arguments.size() >= 255) {
+        Error(Peek(), "Can't have more than 255 arguments.");
+      }
+      arguments.push_back(ParseExpression());
+    } while (Match(TokenType::COMMA));
+  }
+
+  auto paren = Consume(TokenType::RIGHT_PAREN, "Expect ')' after arguments.");
+
+  return MakeExpr<expr::Call>(callee, paren, arguments);
 }
 
 void Parser::Synchronize()
@@ -102,11 +121,45 @@ Stmt Parser::ParseVarDeclaration()
 
 Stmt Parser::ParseStatement()
 {
+  if (Match(TokenType::FOR)) { return ParseFor(); }
   if (Match(TokenType::IF)) { return ParseIf(); }
   if (Match(TokenType::PRINT)) { return ParsePrint(); }
+  if (Match(TokenType::WHILE)) { return ParseWhile(); }
   if (Match(TokenType::LEFT_BRACE)) { return stmt::Block{ ParseBlock() }; }
 
   return ParseExpressionStatement();
+}
+
+Stmt Parser::ParseFor()
+{
+  Consume(TokenType::LEFT_PAREN, "Expect '(' after 'for'.");
+
+  Stmt initializer;
+  if (Match(TokenType::SEMICOLON)) {
+    initializer = stmt::Empty{};
+  } else if (Match(TokenType::VAR)) {
+    initializer = ParseVarDeclaration();
+  } else {
+    initializer = ParseExpressionStatement();
+  }
+
+  ExprPtr condition{};
+  if (!Check(TokenType::SEMICOLON)) { condition = ParseExpression(); }
+  Consume(TokenType::SEMICOLON, "Expect ';' after loop condition.");
+
+  ExprPtr increment{};
+  if (!Check(TokenType::RIGHT_PAREN)) { increment = ParseExpression(); }
+  Consume(TokenType::RIGHT_PAREN, "Expect ')' after for clauses.");
+
+  auto body = ParseStatement();
+
+  if (increment) { body = stmt::Block{ { body, stmt::Expression{ increment } } }; }
+  if (!condition) { condition = MakeExpr<expr::Literal>(true); }
+  body = stmt::While{ condition, std::make_shared<Stmt>(body) };
+
+  if (!std::holds_alternative<stmt::Empty>(initializer)) { body = stmt::Block{ { initializer, body } }; }
+
+  return body;
 }
 
 Stmt Parser::ParseIf()
@@ -125,6 +178,16 @@ Stmt Parser::ParsePrint()
   auto value = ParseExpression();
   Consume(TokenType::SEMICOLON, "Expect ';' after value.");
   return stmt::Print(value);
+}
+
+Stmt Parser::ParseWhile()
+{
+  Consume(TokenType::LEFT_PAREN, "Expect '(' after 'while'.");
+  auto condition = ParseExpression();
+  Consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
+  auto body = ParseStatement();
+
+  return stmt::While(condition, std::make_shared<Stmt>(body));
 }
 
 std::vector<Stmt> Parser::ParseBlock()
@@ -251,7 +314,22 @@ ExprPtr Parser::ParseUnary()
     return MakeExpr<expr::Unary>(op, right);
   }
 
-  return ParsePrimary();
+  return ParseCall();
+}
+
+ExprPtr Parser::ParseCall()
+{
+  auto expr = ParsePrimary();
+
+  while (true) {
+    if (Match(TokenType::LEFT_PAREN)) {
+      expr = FinishCall(expr);
+    } else {
+      break;
+    }
+  }
+
+  return expr;
 }
 
 ExprPtr Parser::ParsePrimary()
