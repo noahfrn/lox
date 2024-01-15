@@ -4,6 +4,9 @@
 #include "Common.h"
 #include "LoxCallable.h"
 
+#include <chrono>
+#include <vector>
+
 class AstInterpreter;
 
 class ClockCallable : public LoxCallable

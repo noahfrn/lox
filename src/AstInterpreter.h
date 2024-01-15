@@ -8,7 +8,6 @@
 #include "ErrorReporter.h"
 #include "Token.h"
 
-#include <chrono>
 #include <memory>
 #include <utility>
 #include <vector>
