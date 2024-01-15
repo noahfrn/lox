@@ -18,7 +18,6 @@ class AstInterpreter
 public:
   explicit AstInterpreter(ErrorReporterPtr error_reporter) : error_reporter_{ std::move(error_reporter) }
   {
-    // Also implement arity
     globals_->Define("clock", std::make_unique<ClockCallable>());
   }
   void Interpret(const std::vector<Stmt> &stmts);
