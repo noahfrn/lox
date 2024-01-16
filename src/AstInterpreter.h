@@ -20,6 +20,7 @@ public:
     globals_->Define("clock", std::make_unique<ClockCallable>());
   }
   void Interpret(const std::vector<Stmt> &stmts);
+  void ExecuteBlock(const std::vector<Stmt> &stmts, Environment environment);
   auto operator()(const expr::Binary &binary) -> ObjectT;
   auto operator()(const expr::Grouping &grouping) -> ObjectT;
   auto operator()(const expr::Unary &unary) -> ObjectT;
@@ -29,19 +30,20 @@ public:
   auto operator()(const expr::Logical &assign) -> ObjectT;
   auto operator()(const expr::Call &call) -> ObjectT;
   auto operator()(const stmt::Expression &expression) -> void;
+  auto operator()(const stmt::Function &function) -> void;
   auto operator()(const stmt::If &block) -> void;
   auto operator()(const stmt::Print &print) -> void;
   auto operator()(const stmt::While &print) -> void;
   auto operator()(const stmt::Var &var) -> void;
   auto operator()(const stmt::Empty &empty) -> void;
   auto operator()(const stmt::Block &block) -> void;
+  auto operator()(const stmt::Return &stmt) -> void;
 
 private:
   ErrorReporterPtr error_reporter_;
   std::shared_ptr<Environment> globals_ = std::make_shared<Environment>();
   std::shared_ptr<Environment> environment_ = globals_;
   void Execute(const Stmt &stmt);
-  void ExecuteBlock(const std::vector<Stmt> &stmts, Environment environment);
   auto Evaluate(const Expr &expr) -> ObjectT;
   [[nodiscard]] static bool IsTruthy(const ObjectT &object);
   [[nodiscard]] static bool IsEqual(const ObjectT &left, const ObjectT &right);

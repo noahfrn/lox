@@ -59,9 +59,7 @@ ExprPtr Parser::FinishCall(ExprPtr callee)
 
   if (!Check(TokenType::RIGHT_PAREN)) {
     do {
-      if (arguments.size() >= 255) {
-        Error(Peek(), "Can't have more than 255 arguments.");
-      }
+      if (arguments.size() >= 255) { Error(Peek(), "Can't have more than 255 arguments."); }
       arguments.push_back(ParseExpression());
     } while (Match(TokenType::COMMA));
   }
@@ -99,6 +97,7 @@ void Parser::Synchronize()
 Stmt Parser::ParseDeclaration()
 {
   try {
+    if (Match(TokenType::FUN)) { return ParseFunction("function"); }
     if (Match(TokenType::VAR)) { return ParseVarDeclaration(); }
 
     return ParseStatement();
@@ -119,11 +118,31 @@ Stmt Parser::ParseVarDeclaration()
   return stmt::Var{ name, initializer };
 }
 
+Stmt Parser::ParseFunction(std::string_view kind)
+{
+  auto name = Consume(TokenType::IDENTIFIER, fmt::format("Expect {} name.", kind));
+  Consume(TokenType::LEFT_PAREN, fmt::format("Expect '(' after {} name.", kind));
+  std::vector<Token> parameters{};
+  if (!Check(TokenType::RIGHT_PAREN)) {
+    do {
+      if (parameters.size() >= 255) { Error(Peek(), "Can't have more than 255 parameters."); }
+      parameters.push_back(Consume(TokenType::IDENTIFIER, "Expect parameter name,"));
+    } while (Match(TokenType::COMMA));
+  }
+
+  Consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters.");
+
+  Consume(TokenType::LEFT_BRACE, fmt::format("Expect '{{' before {} body.", kind));
+  auto body = ParseBlock();
+  return stmt::Function{ name, parameters, body };
+}
+
 Stmt Parser::ParseStatement()
 {
   if (Match(TokenType::FOR)) { return ParseFor(); }
   if (Match(TokenType::IF)) { return ParseIf(); }
   if (Match(TokenType::PRINT)) { return ParsePrint(); }
+  if (Match(TokenType::RETURN)) { return ParseReturn(); }
   if (Match(TokenType::WHILE)) { return ParseWhile(); }
   if (Match(TokenType::LEFT_BRACE)) { return stmt::Block{ ParseBlock() }; }
 
@@ -178,6 +197,16 @@ Stmt Parser::ParsePrint()
   auto value = ParseExpression();
   Consume(TokenType::SEMICOLON, "Expect ';' after value.");
   return stmt::Print(value);
+}
+
+Stmt Parser::ParseReturn()
+{
+  auto keyword = Previous();
+  ExprPtr value{ nullptr };
+  if (!Check(TokenType::SEMICOLON)) { value = ParseExpression(); }
+
+  Consume(TokenType::SEMICOLON, "Expect ';' after return value.");
+  return stmt::Return{ keyword, value };
 }
 
 Stmt Parser::ParseWhile()

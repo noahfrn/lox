@@ -70,19 +70,27 @@ auto MakeExpr(Args&&... args) -> ExprPtr
 
 namespace stmt {
 struct Expression;
+struct Function;
 struct If;
 struct Print;
+struct Return;
 struct Var;
 struct While;
 struct Empty;
 struct Block;
 } // namespace stmt
-using Stmt = std::variant<stmt::Expression, stmt::If, stmt::Print, stmt::Var, stmt::While, stmt::Empty, stmt::Block>;
+using Stmt = std::variant<stmt::Expression, stmt::Function, stmt::If, stmt::Print, stmt::Return, stmt::Var, stmt::While, stmt::Empty, stmt::Block>;
 using StmtPtr = std::shared_ptr<Stmt>;
 
 namespace stmt {
 struct Expression {
     ExprPtr expression;
+};
+
+struct Function {
+    Token name;
+    std::vector<Token> params;
+    std::vector<Stmt> body;
 };
 
 struct If {
@@ -93,6 +101,11 @@ struct If {
 
 struct Print {
     ExprPtr expression;
+};
+
+struct Return {
+    Token keyword;
+    ExprPtr value;
 };
 
 struct Var {

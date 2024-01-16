@@ -30,4 +30,6 @@ add_executable(lox src/main.cpp
         src/Errors.h
         src/LoxCallable.h
         src/ClockCallable.h
+        src/LoxFunction.h
+        src/Return.h
 )

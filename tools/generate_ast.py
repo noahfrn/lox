@@ -18,8 +18,10 @@ class ExpressionType(Enum):
 
 class StatementType(Enum):
     EXPRESSION = "Expression"
+    FUNCTION = "Function"
     IF = "If"
     PRINT = "Print"
+    RETURN = "Return"
     VAR = "Var"
     WHILE = "While"
     EMPTY = "Empty"
@@ -88,10 +90,15 @@ EXPR_AST: Ast = {
 }
 STMT_AST: Ast = {
     StatementType.EXPRESSION: [SimpleField(FieldType.EXPRESSION_PTR, "expression")],
+    StatementType.FUNCTION: [SimpleField(FieldType.TOKEN, "name"),
+                             NestedField(FieldType.VECTOR, FieldType.TOKEN, "params"),
+                             NestedField(FieldType.VECTOR, FieldType.STATEMENT, "body")],
     StatementType.IF: [SimpleField(FieldType.EXPRESSION_PTR, "condition"),
                        SimpleField(FieldType.STATEMENT_PTR, "then_branch"),
                        SimpleField(FieldType.STATEMENT_PTR, "else_branch")],
     StatementType.PRINT: [SimpleField(FieldType.EXPRESSION_PTR, "expression")],
+    StatementType.RETURN: [SimpleField(FieldType.TOKEN, "keyword"),
+                           SimpleField(FieldType.EXPRESSION_PTR, "value")],
     StatementType.VAR: [SimpleField(FieldType.TOKEN, "name"), SimpleField(FieldType.EXPRESSION_PTR, "initializer")],
     StatementType.WHILE: [SimpleField(FieldType.EXPRESSION_PTR, "condition"),
                           SimpleField(FieldType.STATEMENT_PTR, "body")],

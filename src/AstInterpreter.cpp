@@ -1,9 +1,9 @@
 #include "AstInterpreter.h"
 #include "Ast.h"
-#include "Common.h"
 #include "Environment.h"
 #include "Errors.h"
-#include "LoxCallable.h"
+#include "LoxFunction.h"
+#include "Return.h"
 #include "Token.h"
 
 #include <fmt/core.h>
@@ -190,6 +190,12 @@ auto AstInterpreter::operator()(const stmt::While &stmt) -> void
 
 auto AstInterpreter::operator()(const stmt::Expression &expression) -> void { Evaluate(*expression.expression); }
 
+auto AstInterpreter::operator()(const stmt::Function &function) -> void
+{
+  auto callable = std::make_shared<LoxFunction>(function, environment_);
+  environment_->Define(function.name.Lexeme(), callable);
+}
+
 auto AstInterpreter::operator()(const stmt::Var &var) -> void
 {
   if (var.initializer) {
@@ -215,6 +221,15 @@ auto AstInterpreter::operator()(const stmt::Block &block) -> void
 {
   ExecuteBlock(block.statements, Environment{ environment_ });
 }
+
+auto AstInterpreter::operator()(const stmt::Return &stmt) -> void
+{
+  ObjectT value = Nil{};
+  if (stmt.value) { value = Evaluate(*stmt.value); }
+
+  throw Return{ value };
+}
+
 
 void AstInterpreter::Interpret(const std::vector<Stmt> &stmts)
 {

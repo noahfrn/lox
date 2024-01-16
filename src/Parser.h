@@ -26,11 +26,13 @@ private:
   int current_{ 0 };
 
   [[nodiscard]] Stmt ParseDeclaration();
+  [[nodiscard]] Stmt ParseFunction(std::string_view);
   [[nodiscard]] Stmt ParseVarDeclaration();
   [[nodiscard]] Stmt ParseStatement();
   [[nodiscard]] Stmt ParseIf();
   [[nodiscard]] Stmt ParseFor();
   [[nodiscard]] Stmt ParsePrint();
+  [[nodiscard]] Stmt ParseReturn();
   [[nodiscard]] Stmt ParseWhile();
   [[nodiscard]] std::vector<Stmt> ParseBlock();
   [[nodiscard]] Stmt ParseExpressionStatement();

@@ -1,12 +1,13 @@
-fun returnFunction() {
-  var outside = "outside";
-
-  fun inner() {
-    print outside;
+fun makeCounter() {
+  var i = 0;
+  fun count() {
+    i = i + 1;
+    print i;
   }
 
-  return inner;
+  return count;
 }
 
-var fn = returnFunction();
-fn();
+var counter = makeCounter();
+counter(); // "1".
+counter(); // "2".
